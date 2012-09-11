@@ -1,0 +1,9 @@
+<!--<?xml version="1.0"?>
+
+<object name="portal_properties" meta_type="Plone Properties Tool">
+    <object name="webmail_properties" meta_type="Plone Property Sheet">
+        <property name="title" type="string" purge="false">Webmail Properties</property>
+        <property name="imap_server" type="string" purge="false"></property>
+        <property name="wrapper" type="string" purge="false"></property>
+    </object>
+</object>-->

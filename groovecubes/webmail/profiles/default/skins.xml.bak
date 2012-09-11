@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+
+<object name="portal_skins" allow_any="False" cookie_persistence="False">
+	
+	<object name="groovecubes_webmail_js"
+		    meta_type = "Filesystem Directory View"
+		    directory = "groovecubes.webmail:skins/js"/>
+	
+	<skin-path name="*" based-on="Plone Defaults">
+		<layer name="groovecubes_webmail_js"
+			   insert-after="custom" />
+	</skin-path>
+	
+</object>
+
+
+
+
+
+
+
+

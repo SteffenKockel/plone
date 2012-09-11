@@ -1,0 +1,103 @@
+<dtml-var manage_page_header>
+<dtml-var manage_tabs>
+
+
+<h3> <code>webmailmember_tool</code> Tool </h3>
+
+<p>This tool is the user-management tool for servers defined in the groovecubes.webmail tool</p>
+
+<table style="text-align:left">
+	<tr><th><p>Servers</p></th>
+	<th></th></tr>
+	<tr><td valign="top">
+		<dtml-in expr="getConfig().keys()">
+			<dtml-let item=sequence-item id="item">
+				<form action="manage_mailserver_users" method="post">
+				<button value=<dtml-var id> name="server"><dtml-var id></button></br>
+				</form>
+			</dtml-let>
+		</dtml-in>	
+	</td>
+	<td>
+		<dtml-with REQUEST>
+			
+		<dtml-if server> 
+			
+		<table style="text-align:left" border="1" >
+			<colgroup>
+				<col width="150">
+				<col width="150">
+				<col width="80">
+				<col width="90">
+				<col width="100">
+				<col width="100">
+			</colgroup>
+			<tr><td colspan=6><h3></br>Selected server: <dtml-var server></h3></td></tr>
+			<tr><th><p>Login</p></th>
+				<th><p>Aliases</p></th>
+				<th><p>Max size</p></th>
+				<th><p>Current size</p></th>
+				<th><p>Encryption</p></th>
+				<th><p>Actions</p></th>
+			</tr>
+				
+			<dtml-let userlist="getUserList(str(server))" name="userlist">
+			<dtml-in expr="userlist.keys()">
+			<dtml-let item=sequence-item id="item" vals="userlist[id]">
+			<tr>
+				<form action="manage_updateUser" method="post"> 
+					
+					<td valign="top"><input type="text" value=<dtml-var expr="vals['login']"> name="login:text"/> </td>
+					<td valign="top"><p>
+						<input type="text" name="newaliases"/></br>
+						<dtml-in expr="vals['aliases']">
+							<dtml-let item=sequence-item id="item">
+								<input type="checkbox" name="aliases[]" value=<dtml-var expr="item">  checked="checked"/>
+								<span><dtml-var expr="item"></span></br>
+							</dtml-let>
+						</dtml-in></p>
+					</td>
+					<td valign="top"><input type="text" size="6" value=<dtml-var expr="int(vals['quota_max_mb']/1024000)"> name="quota_max_mb:int"/></td>
+					
+					
+					<td valign="top"><p><dtml-var expr="int(vals['quota_cur_mb']/1024000)">MB</p></td>
+					<td valign="top"><p><dtml-var expr="vals['encrypt']"></p></td>
+					<td valign="top">
+						<button name="update_user" value="update_user">Update</button>
+						<input type="hidden" size="1" value=<dtml-var expr="vals['id']"> name="userid:int"/>
+						<input type="hidden" size="1" value=<dtml-var server> name="server" />
+						<input type="hidden" size="1" value="formhelper" name="aliases[]" />
+					</td>
+				</form>
+			</tr>
+			</dtml-let>
+			</dtml-in>		
+			</dtml-let>
+			
+			<tr><td colspan=6><h3></br>Add user to <dtml-var server></h3></td></tr>
+			<tr>
+				<th valign="top"><p>Login</p></th>
+				<th valign="top"><p>Alias(es)</p></th>
+				<th colspan=2 valign="top"><p>Max mailbox size (MB)</p></th>
+				<th valign="top"><p></p></th>
+				<th valign="top"><p></p></th>
+			</tr>
+			<tr>
+				<form action="manage_addUser" method="post">
+					<td valign="top"><input type="text" name="login:text"/></td>
+					<td valign="top"><input type="text" name="aliases:text"/></td>
+					<td colspan=2 valign="top"><input size="6" type="text" name="quota_max_mb:int"/></td>
+					<td valign="top"><button value="add_user" name="add_user"/>Add user</td>
+					<td valign="top"><input type="hidden" value=<dtml-var server> name="server" /></td>
+					
+				</form>
+			</tr>
+			<dtml-else><h3>No Server selected<h3>
+		</dtml-if>
+		</dtml-with>
+		</table>
+	</td>
+	</tr>
+</table>
+
+<dtml-var manage_page_footer>

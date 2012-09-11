@@ -1,0 +1,118 @@
+button.webmail_folderform_button, button.message_toolbox_button, button.webmail_show_message {
+	border:none;
+	background:none;
+	cursor: pointer;
+	font: 100% Arial,FreeSans,sans-serif !important;
+	color: #000000;
+}
+
+button.inPath {
+	font-weight:bold !important;
+}
+
+
+dl.portletIMAPPortlet ul.level-2 {
+	margin: 0 0 0 1em;
+	
+}
+
+
+dl.portletIMAPPortlet ul.level-2 {
+	margin: 0 0 0 1em;	
+}
+
+
+div#main_webmail_container {
+	width:100%;
+	border: 1px solid #ffffff;
+	height:100%;
+}
+
+
+div#message_table_wrapper {
+	overflow: scroll;
+	height: 200px;
+	width:100%;
+	border-top: 2px solid #DDDDDD;
+}
+
+
+table.message_list {
+	border:collapse;
+	min-width:900px;
+	width:100%;
+	border-left: 2px solid #DDDDDD;
+	margin-bottom:0 !important;
+}
+
+
+table.message_list tr.Unseen {
+	font-weight: bold;	
+}
+
+
+table.message_list tr.is_current_message {
+	background:#DDDDDD;	
+}
+
+
+table.message_list td {
+	padding: 0.1em 0.2em;
+	vertical-align: top;
+	text-align:left;
+}
+
+
+span.message_date {
+	display:block;
+	width:105px;
+}
+
+
+div#message_toolbox {
+	margin: 0 0 0 0;
+	padding: 0.2em 0; 
+}
+
+
+div#message_toolbox img{
+		width: 40px;
+		height: 40px;	
+}
+
+
+div#webmail-message-container {
+	margin:0;
+	padding:0;
+	border-left: 2px solid #DDDDDD;
+}
+
+div#webmail-message-preview {
+	padding: 0 2em 2em 2em;
+	overflow:scroll;
+	height: 300px;
+	font-family: Courier;
+}
+
+div#webmail-inner-message-preview {
+	padding: 0.5em 0 0 0;
+}
+
+div#message-preview-details {
+	background:  #DDDDDD;
+	padding:0.5em;
+}
+
+div#webmail-textile-type-selector {
+	float:right;
+	padding: 0.5em;
+}
+
+span.current_message_detail {
+	font-weight: bold;
+	display: block;
+}
+
+span.current_message_detail span {
+	font-weight: normal;
+}

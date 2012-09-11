@@ -1,0 +1,101 @@
+<dl class="portlet portletIMAPPortlet"
+    i18n:domain="groovecubes.webmail">
+
+    <dt class="portletHeader">
+        <span class="portletTopLeft"></span>
+	<!--<p metal:use-macro="here/webmail_macros/macros/copyright">
+  		.
+	</p>-->
+
+        <span i18n:translate="IMAP folder">IMAP folder</span>
+
+        <span class="portletTopRight"></span>
+    </dt>
+	
+    <dd class="portletItem odd"
+   		tal:condition="context/has_imap_connection">
+      
+        <ul tal:define="url here/portal_url;
+        		    hurl context/@@plone_context_state/current_base_url;
+                    res string:/++resource++groovecubes.webmail;
+                    folders python:[i[2].split('/') for i in context.imap_folders][1:];
+                    root python:folders[0][0];
+                    level python:0*1;
+                    this string:INBOX;
+                    form request/form;
+                    current_path python:form.get('current_path', 'INBOX').decode('utf-8');
+                    this_path current_path;
+                    in_path python:context.comparePathes(current_path, this);
+                    classes string:webmail_folderform_button isRoot ${in_path}">
+                    
+        <form method="POST" name="folder_form">
+        	<tal:root metal:use-macro="here/imap_folder_portlet_macros/macros/folder_link"> 		
+        		<tal:linktext metal:fill-slot="folder_linktext">
+        			
+        			<button name="current_path"
+        					tal:attributes="value root;
+        						    		class classes"
+        					i18n:translate="Inbox folder">Inbox
+        			</button>
+        					  			
+        		</tal:linktext>
+        		<tal:block metal:fill-slot="folder_image">
+        			<img style="width:1.2em;height:1.2em"
+ 	    	 			 tal:attributes="src string:${url}${res}.icons/inbox.svg"/>
+        		</tal:block>       		
+        		<tal:block metal:fill-slot="subitems">
+        		</tal:block>
+        	</tal:root>
+        	
+        	<tal:folders repeat="folder python:folders[1:]">
+        		<tal:block define="level python:level+1;
+        						   last python:folders[repeat['folder'].number()-1][level];
+        						   this python:folder[level];
+        						   this_path python:'/'.join(folders[repeat['folder'].number()]);
+        						   cp python: '/'.join(current_path.split('/')[0:level+1]);        						   
+        						   in_path python:context.comparePathes(cp, this_path);
+        						   classes string:webmail_folderform_button ${in_path}"
+        				   condition="python:last != this">
+					
+					<tal:li metal:use-macro="here/imap_folder_portlet_macros/macros/folder_link">
+						<tal:linktext metal:fill-slot="folder_linktext">
+														
+        					<button name="current_path"
+        						    tal:attributes="value this_path;
+        						    				class classes"
+        						    tal:content="python:this"></button>
+						</tal:linktext>
+					</tal:li>
+				
+				</tal:block>
+	        </tal:folders>
+	        <tal:trash metal:use-macro="here/imap_folder_portlet_macros/macros/folder_link">
+				<tal:linktext metal:fill-slot="folder_linktext">
+					<button name="trash_folder" 
+						    value="True"
+						    tal:define="in_path python: not context.is_trashfolder or 'inPath'" 
+						    tal:attributes="class string:webmail_folderform_button ${in_path}"
+						    i18n:translate="Trash folder">Trash
+						    </button>
+				</tal:linktext>
+				<tal:block metal:fill-slot="folder_image">
+        			<img style="width:1.2em;height:1.2em"
+ 	    	 			 tal:attributes="src string:${url}${res}.icons/user-trash.svg"/>
+        		</tal:block>	        	
+	        	<tal:subitems metal:fill-slot="subitems">
+	        	</tal:subitems>
+	        </tal:trash>
+		</form>
+	</ul>
+        
+    </dd>
+
+    <dd class="portletFooter">
+        <span class="portletBottomLeft"></span>
+        <span>
+         
+        </span>
+        <span class="portletBottomRight"></span>
+    </dd>
+
+</dl>

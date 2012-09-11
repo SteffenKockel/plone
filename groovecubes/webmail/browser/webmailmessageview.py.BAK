@@ -1,0 +1,63 @@
+from zope.interface import implements, Interface
+from Products.Five import BrowserView
+from Products.CMFCore.utils import getToolByName
+import email as Email
+
+from groovecubes.webmail import webmailMessageFactory as _
+# from groovecubes.webmail.browser.webmailview import parseBase64EncodedString, parseHeaderFields
+
+
+class IWebmailMessageView(Interface):
+    """
+    webmail message view interface
+    """
+    
+class WebmailMessageView(BrowserView):
+    """
+    webmail message view
+    """
+    implements(IWebmailMessageView)
+    
+    
+    has_imap_connection = False
+    
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+    
+    
+    def parseHeaderFields(self, header_as_string, headeronly=True):
+        return "parseHeaderFields(header_as_string, headersonly)"
+    
+    
+    def parseBase64EncodedString(self, encoded_string):
+        return "parseBase64EncodedString(encoded_string)"
+    
+    
+    @property 
+    def webmail_tool(self):
+        return getToolByName(self.context, 'webmail_tool')
+    
+    
+    
+    def __call__(self):
+        current_path = self.request.form.get('current_path')
+        message_id = self.request.form.get('msgid')
+        member = self.context.portal_membership.getAuthenticatedMember()
+        mail_address = member.getProperty('email')
+        imap_connection = self.webmail_tool.getIMAPConnection(mail_address)
+        if not imap_connection:
+            return self.index()
+        imap_connection.select_folder(current_path)
+        message = imap_connection.fetch(message_id, ['BODY[]'])
+        self.message = Email.message_from_string(message[int(message_id)]['BODY[]'])
+        print self.message.get_payload()
+        imap_connection.logout()
+        return self.index()
+        
+            
+        
+        
+    
+    
+    

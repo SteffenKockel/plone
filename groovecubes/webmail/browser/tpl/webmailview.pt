@@ -1,0 +1,87 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      lang="en"
+      metal:use-macro="here/main_template/macros/master"
+      i18n:domain="groovecubes.webmail">
+<body>
+	
+    <div id="main_webmail_container" metal:fill-slot="main" tal:condition="view/has_imap_connection"
+    	tal:define="sort_order view/sort_order;
+        			date_format string:%d.%m.%Y %H:%M;
+        			current_message view/current_message_id;
+        			current_path view/current_path;
+        			messages view/messages;"> 
+        			<!-- XXX: make the date format configurable through ZMI-->
+      	<span tal:content="python: context.getTmp_folder().getPhysicalPath()"></span>	
+        <form name="message_tools_form" method="POST">
+        	<!--tal:attributes="action string:${context/absolute_url}/emailform">-->
+        	<div id="message_toolbox">
+        		<tal:block repeat="action python:('New', 'Answer', 'Forward', 'Delete', 'Refresh')">
+        			<button tal:attributes="title string:${action};
+        									name string:message.actions.${action};
+        									value action;
+        									class string:message_toolbox_button ${action}">
+        				<image tal:define="url here/portal_url;
+        				   				   res string:${url}/++resource++groovecubes.webmail;"
+        				   	    tal:attributes="src string:${res}.icons/message-${action}.svg;
+        				   		    			alt string:${action}"></image>        								
+        			</button>
+        		</tal:block>
+        	</div>
+        	<input type="hidden" name="form.widgets.source_url" tal:attributes="value context/absolute_url"/>
+        <!--</form>
+        
+        <form name="message_list_form" method="POST" >-->
+        <div id="message_table_wrapper">	
+        	<table class="message_list vertical">
+        		<tal:tdwrap tal:repeat="msgid view/sort_order">        			        			
+        			<tr tal:define="url here/portal_url;
+        							res string:${url}/++resource++groovecubes.webmail;
+        							message python: messages[msgid];
+        							header python: view.parseHeadersFromString(message['BODY[HEADER]']);
+        							charset python: header.get_charsets()[0];
+        							subject python: view.decodeHeader(header['Subject'], charset);
+        							sender python: view.decodeHeader(header['From'], charset);
+        							receiver python: header['To'];
+        							flags python: message['FLAGS'];
+        							date python: message['INTERNALDATE'];
+        							size python: message['RFC822.SIZE'];
+        							is_multipart python: header['Content-Type'];
+        							unseen python: view.parseFlagClasses('\\Seen', flags, 'Unseen');
+        							replied python: view.parseFlagClasses('\\Answered', flags, False);        
+        							status python: replied or unseen;
+        							is_current python: view.parseIsCurrentClass(msgid);         					
+        							classes string:${unseen} ${is_current}"
+        				tal:attributes="class classes">       				
+        							
+        				<!--<td tal:content="flags"></td>-->
+        				<td><input type="checkbox" name="msgid"
+        						   tal:attributes="value string:${msgid}"/>
+        						   </td>
+        			
+        				
+        				<td><img tal:attributes="src string:${res}.icons/message-${status}.png" /></td>
+        				<td > <img tal:condition="python: is_multipart and is_multipart.startswith('multipart')" 
+        					       tal:attributes="src string:${res}.icons/message-Attachment.png;
+        					                       title string:${is_multipart}"/>
+        					                       </td>
+        				<td tal:content="sender"></td>
+        				<td ><button class="webmail_show_message"
+        							 name="show_message" 
+        					         tal:attributes="value msgid" 
+        					         ><span tal:content="subject"></span></button></td>
+        				<td><span class="message_date" tal:content="python:date.strftime(date_format)"></span></td>
+        			</tr>
+        		</tal:tdwrap>
+        	</table>
+		</div>
+		<div id="email-preview" metal:use-macro="here/webmail_message_macros/macros/webmail_message_preview">
+			
+		</div>
+		
+       		<input type="hidden" name="current_path" tal:attributes="value current_path"/>
+       		<input type="hidden" name="trash_folder" tal:attributes="value view/is_trashfolder"/>
+       		<input type="hidden" name="current_message" tal:attributes="value view/current_message_id"/>
+       </form>
+    </div>
+</body>
+</html>

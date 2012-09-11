@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<rolemap>
+  <permissions>
+    <!-- -*- extra stuff goes here -*- -->
+    <!--<permission name="groovecubes.webmail: Add IMAPServer" acquire="False">
+      <role name="Manager" />
+      <role name="Contributor" />
+  	</permission>-->
+    <permission name="groovecubes.webmail: Add Webmail" acquire="False">
+      <role name="Manager" />
+    </permission>
+  </permissions>
+</rolemap>

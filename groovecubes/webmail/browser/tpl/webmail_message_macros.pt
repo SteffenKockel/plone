@@ -1,0 +1,105 @@
+
+<div id="webmail-message-container"
+	 metal:define-macro="webmail_message_preview"
+	 tal:define="message view/current_message;
+			     body python: view.parseMessageFromString(message['BODY[]']);
+			     is_multipart python: body.is_multipart();
+			     textiles python: [i.get_content_type() for i in body.walk() if i.get_content_maintype() == 'text'];
+			     files python: [i.get_filename() for i in body.walk() if i.get_filename()];
+				 has_plaintext python: 'text/plain' in textiles;
+				 has_htmltext python: 'text/html' in textiles">
+				
+		<!-- The dropdown list for plain or html view --> 
+		
+		<div id="webmail-textile-type-selector" 
+			 tal:condition="is_multipart">
+			
+			<select name="message_textile_type"
+					tal:condition="python: has_plaintext and has_htmltext"> 
+				
+        		<tal:block repeat="textile textiles">
+        			
+        			<option tal:define="selected python: view.current_message_textile_type == textile;
+        								selected python: selected or '';"
+        					tal:attributes="value textile;
+        									selected selected"
+        					i18n:translate="textile"><tal:block content="textile"></tal:block>
+        			</option>			
+        		
+        		</tal:block>			
+			
+			</select>
+			
+        </div>
+		
+		<!-- The Messages Details -->
+	
+		<div id="message-preview-details">
+
+			<span class="current_message_detail" i18n:translate="">From:
+				 <span tal:content="python:view.decodeHeader(body.get('From'))"
+			 		   i18n:name="From"></span>
+			</span>
+			<span class="current_message_detail" i18n:translate="">To:
+				 <span tal:content="python:view.decodeHeader(body.get('To'))"
+			 		   i18n:name="To"></span>
+			 	</span>
+			<span class="current_message_detail" i18n:translate="">Subject:
+				 <span tal:content="python:view.decodeHeader(body.get('Subject', ''))"
+			 		   i18n:name="To"></span>
+			 	 </span>
+			<span class="current_message_detail" i18n:translate="">Date:
+				 <span tal:content="python:view.decodeHeader(body.get('Date'))"
+			 		   i18n:name="Date"></span>
+			 	</span>	
+		</div>
+	
+	<!-- The message text area -->
+	
+		<div id="webmail-message-preview">
+	
+			<div id="webmail-inner-message-preview"
+				 tal:repeat="part python: body.walk()">		
+	
+				<tal:block condition="python: part.get_content_maintype() == 'text'"
+						   define="encoding python: part.get_content_charset();
+						   		   textile_type python: part.get_content_type();
+						   		   current_textile  python: view.current_message_textile_type;
+						   		   body python: part.get_payload(decode=True);
+						   		   is_plain python: textile_type == 'text/plain'">
+						
+					<p tal:condition="python: is_plain and current_textile == 'text/plain' "
+			   	   	   tal:content="structure python: view.parsePlaintextEmailBody(body, encoding)">
+			   	   	   </p>
+			   	   	 
+			   	   	<p tal:condition="python:not is_plain and current_textile == 'text/html'"
+			   		   tal:content="structure python: view.parseHTMLEmailBody(body, encoding)">
+			   		   </p>
+			   	   
+				</tal:block>
+	
+			</div>
+		
+		</div>
+		
+		
+	<!-- the messages attachments -->
+	
+	<div id="webmail-message-attachment">
+		<span tal:repeat="file files">
+			<button name="download_attachment"
+					tal:attributes="value file"
+				    tal:content="file">
+			</button>
+		</span>
+		
+	</div>
+
+</div>
+
+
+	 
+			
+	 				
+		 	
+			

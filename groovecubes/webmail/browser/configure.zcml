@@ -1,0 +1,85 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+     xmlns:five="http://namespaces.zope.org/five"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="groovecubes.webmail">
+
+  <include package="plone.app.contentmenu" />
+<!--  <include package="z3c.form" />
+  <include file="file.zcml" />-->
+  
+
+  <browser:resourceDirectory
+  	name="groovecubes.webmail.css"
+    directory="css"
+    />
+  
+  <browser:resourceDirectory
+  	name="groovecubes.webmail.icons"
+    directory="icons"
+    />
+    
+  <browser:resourceDirectory
+  	name="groovecubes.webmail.js"
+    directory="js"
+    />
+  
+  
+  <!-- -*- extra stuff goes here -*- -->
+    
+    <browser:page
+        for="*"
+        name="emailform"
+        class=".emailform.EmailForm"
+        permission="zope.Public" />
+
+
+  <browser:page
+      for="*"
+      name="webmail_view"
+      class=".webmailview.WebmailView"
+      template="tpl/webmailview.pt"
+      allowed_interface=".webmailview.IWebmailView"
+      permission="zope.Public"
+      />
+	
+	<browser:page
+		for="*"
+		name="imap_folder_portlet_macros"
+		template="tpl/imap_folder_portlet_macros.pt"
+		permission="zope.Public"
+		allowed_interface=".webmailview.IWebmailView"
+		/>
+		
+   <browser:page
+		for="*"
+		name="webmail_message_macros"
+		template="tpl/webmail_message_macros.pt"
+		permission="zope.Public"
+		allowed_interface=".webmailview.IWebmailView"
+		/>
+   
+   
+   <adapter factory=".webmailconfig.WebmailControlPanelAdapter" />
+   <browser:page
+      for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+      name="webmail-controlpanel"
+      class=".webmailconfig.WebmailControlPanel"
+      permission="cmf.ManagePortal" />
+      
+	<!-- password reset --> 
+   <browser:page
+      for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+      name="change-password"
+      class=".personalpreferences.PasswordAccountPanelWithIMAP"
+      permission="cmf.SetOwnPassword"
+      />
+   
+   <adapter
+   	for="Products.CMFPlone.interfaces.IPloneSiteRoot" 
+   	factory=".personalpreferences.PasswordPanelAdapter" 
+   	/>
+
+
+
+</configure>

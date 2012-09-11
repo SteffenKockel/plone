@@ -1,0 +1,42 @@
+<!-- the inner loop structure -->
+
+<ul metal:define-macro="folder_link" tal:attributes="class string:level-${level}">
+<li tal:attributes="class string:level-${level}">
+	
+ 	<tal:block metal:define-slot="folder_image">
+ 		<img style="width:1.2em;height:1.2em"
+ 	    	 tal:attributes="src string:${url}${res}.icons/folder.svg"/>
+ 	</tal:block>	
+ 	
+    <a metal:define-slot="folder_linktext">
+    
+    </a> 
+ 
+    	
+    	<tal:foo define="parent python:this;
+    					 level  python:level+1;
+    			         childs python:context.getChildsOf(parent, level);"    			         
+    		  condition="python:len(childs) > 0 and current_path != 'INBOX' and current_path.split('/')[level-1]==parent">
+    			   			    			 
+  			<tal:block metal:define-slot="subitems">
+    		<tal:bar repeat="child childs">
+    			<tal:block define="this_path python:'/'.join((this_path, child));
+    							   in_path python:context.comparePathes(current_path, this_path);
+    							   classes string:webmail_folderform_button ${in_path}">    			 
+    		
+    			<tal:li metal:use-macro="here/imap_folder_portlet_macros/macros/folder_link">
+    				<tal:linktext metal:fill-slot="folder_linktext">
+        				
+    				   	<button name="current_path"
+        						tal:attributes="value this_path;
+        						   				class classes"
+        						tal:content="child"></button>
+    				</tal:linktext>
+    		
+    			</tal:li>
+    			</tal:block>
+    		</tal:bar>
+    		</tal:block>
+    	</tal:foo>
+</li>
+</ul>
