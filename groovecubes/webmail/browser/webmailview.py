@@ -59,12 +59,16 @@ class WebmailView(BrowserView):
         return getToolByName(self.context, 'portal_url').getPortalObject()
     
     
+    @property 
+    def member(self):
+        self.context.portal_membership.getAuthenticatedMember()
+    
     @property
     def session(self):
         return self.context.session_data_manager.getSessionData(create=True)
     
-        
-    def getTicketId(self):
+    
+    def generateTicketID(self):
         return "%s" % uuid.uuid4()
 
     
@@ -272,8 +276,7 @@ class WebmailView(BrowserView):
         print self.request.form
         print action, action_on, self.current_path
         
-        # get the authenticated user and it's email address
-        self.member = self.context.portal_membership.getAuthenticatedMember()     
+        # get the authenticated user and it's email address      
         self.email = self.member.getProperty('email')
         
         try:
@@ -294,7 +297,7 @@ class WebmailView(BrowserView):
             
             # deal with message actions 
         if action and action in ('New','Answer','Forward'):
-            ticket_id = self.getTicketId()
+            ticket_id = self.generateTicketID()
             session = self.session
             ticket = { 'source_url': self.context.getPhysicalPath(),
                        'action': action,

@@ -34,8 +34,9 @@ from plone.i18n.normalizer.interfaces import IURLNormalizer
 def availableAttachments(context):
     
         path = '/'.join(context.getTmp_folder().getPhysicalPath())
-        query = {"portal_type":("File","Image"),
-                 "path": {'query':path } }
+        query = {"portal_type" : ("File","Image"),
+                 "path" : {'query' : path }
+                 }
         
         Source = ObjPathSourceBinder(navigation_tree_query = query)
         # I spent hours on this piece of code
@@ -50,7 +51,6 @@ class IEmailFormSchema(form.Schema):
     #form.fieldset('extra',
     #              label=u"extra info",
     #              fields=['body','subject'])
-    
     
     to = schema.TextLine(
         title=_(u'To:'),

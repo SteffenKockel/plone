@@ -1,0 +1,20 @@
+<configure 
+	xmlns="http://namespaces.zope.org/zope"
+	xmlns:browser="http://namespaces.zope.org/browser"
+    >
+
+   <!-- Override the @@personal-information panel and view -->
+  <adapter 
+    provides=".userdataschema.IWebmailUserDataSchema"
+    for="Products.CMFCore.interfaces.ISiteRoot"
+    factory=".userdataadapter.WebmailUserDataPanelAdapter"
+    />
+    
+  <browser:page
+  	for="Products.CMFPlone.Portal.PloneSite"
+  	name="personal-information"
+  	class=".userdataadapter.WebmailUserDataPanel"
+  	permission="cmf.SetOwnProperties"
+  	/>
+
+</configure>

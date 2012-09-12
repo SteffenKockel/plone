@@ -1,14 +1,9 @@
 <configure
     xmlns="http://namespaces.zope.org/zope"
-     xmlns:five="http://namespaces.zope.org/five"
+    xmlns:five="http://namespaces.zope.org/five"
     xmlns:browser="http://namespaces.zope.org/browser"
     i18n_domain="groovecubes.webmail">
-
-  <include package="plone.app.contentmenu" />
-<!--  <include package="z3c.form" />
-  <include file="file.zcml" />-->
-  
-
+ 
   <browser:resourceDirectory
   	name="groovecubes.webmail.css"
     directory="css"
@@ -79,7 +74,5 @@
    	for="Products.CMFPlone.interfaces.IPloneSiteRoot" 
    	factory=".personalpreferences.PasswordPanelAdapter" 
    	/>
-
-
 
 </configure>
