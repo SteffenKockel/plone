@@ -4,7 +4,7 @@ import MySQLdb
 import pgsql
 from groovecubes.webmail.interfaces import IMailserverUserManager
 from imapclient.imapclient import IMAPClient
-
+from groovecubes.webmail.errors import NoAccountError
 
 class DBMail2UserManager:
     implements(IMailserverUserManager)
@@ -96,10 +96,10 @@ class DBMail2UserManager:
                     FROM dbmail_users
                     WHERE userid = '%s'""" % login
                     
-        self.cursor.execute(query)
-        cred = self.cursor.fetchall()
-        if len(cred) == 0:
+        if not self.cursor.execute(query):
             return False
+        
+        cred = self.cursor.fetchall()
         return cred[0] 
         
     
@@ -157,8 +157,8 @@ class DBMail2UserManager:
     
     def getIMAPConnection(self, login):
         cred = self.getCredentials(login)
-        if cred == False:
-            return "None"
+        if not cred:
+            raise NoAccountError(login)
         
         c = self.config
         if hasattr(self, 'ssl'):

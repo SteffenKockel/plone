@@ -9,6 +9,11 @@ import email as Email
 from groovecubes.webmail import webmailMessageFactory as _
 from groovecubes.webmail.browser.utils import parsePlaintextEmailBody, parseHTMLEmailBody,\
                                               parseHeadersFromString, decodeHeader
+
+from BTrees.OOBTree import OOBTree
+
+from groovecubes.webmail.errors import NoAccountError
+
 from StringIO import StringIO
 
 # from Acquisition import aq_inner
@@ -30,6 +35,7 @@ class WebmailView(BrowserView):
     """
     implements(IWebmailView)
 
+    _imap_connection = False
     has_imap_connection = False
     messages = False
     imap_folders = None
@@ -61,11 +67,33 @@ class WebmailView(BrowserView):
     
     @property 
     def member(self):
-        self.context.portal_membership.getAuthenticatedMember()
+        return self.context.portal_membership.getAuthenticatedMember()
     
     @property
     def session(self):
         return self.context.session_data_manager.getSessionData(create=True)
+    
+    def imap_connection(self):
+        if self._imap_connection:
+            print "#### use con"
+            return self._imap_connection
+        try:
+            self.email = self.member.getProperty('email')
+            self._imap_connection = self.webmail_tool.getIMAPConnection(self.email)
+            self.has_imap_connection = True
+            print "#### create con"
+            return self._imap_connection
+
+        # no account 
+        except NoAccountError, e:
+            self.Logger.info(e)
+            self.request.response.redirect(self.portal.absolute_url())
+            return
+        
+        # handle non authenticated
+        except AttributeError:
+            self.request.response.redirect("%s/login" % self.context.absolute_url())
+            return 
     
     
     def generateTicketID(self):
@@ -276,18 +304,9 @@ class WebmailView(BrowserView):
         print self.request.form
         print action, action_on, self.current_path
         
-        # get the authenticated user and it's email address      
-        self.email = self.member.getProperty('email')
-        
-        try:
-            imap_connection =  self.webmail_tool.getIMAPConnection(self.email)
-            # if False (default), views can skip rendering safely
-            self.has_imap_connection = True
-    
-        except AttributeError:
-            self.request.response.redirect("%s/login" % self.context.absolute_url())
-            return 
-                
+        # get the authenticated user and it's email address
+        imap_connection = self.imap_connection()      
+            
         # if it is a download, we respond in 
         # deliver_attachment() to this request,
         # avoiding unneccessary page reloads

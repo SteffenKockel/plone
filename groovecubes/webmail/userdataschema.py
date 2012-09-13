@@ -1,7 +1,7 @@
 from zope import schema
 from zope.interface import implements
-from z3c.form.interfaces import HIDDEN_MODE
-from zope.formlib import form
+from BTrees.OOBTree import OOBTree
+
 from plone.app.users.userdataschema import IUserDataSchemaProvider
 from plone.app.users.userdataschema import IUserDataSchema
 
@@ -22,8 +22,9 @@ class IWebmailUserDataSchema(IUserDataSchema):
     Enhance the user form. 
     """
     
-    imap_password = schema.Password(
-        title=_(u'imap password'),
+    imap_cache = schema.Container(
+        title=_(u'imap cache'),
         description=_(u''),
+        default = OOBTree(),
         required= False
         )
