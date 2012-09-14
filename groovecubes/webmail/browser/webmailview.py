@@ -12,7 +12,8 @@ from groovecubes.webmail.browser.utils import parsePlaintextEmailBody, parseHTML
 
 from zope.annotation.interfaces import IAnnotations
 
-from groovecubes.webmail.errors import NoAccountError, NotInMailgroupError, NoEmailAddressError
+from groovecubes.webmail.errors import NoAccountError, NotInMailgroupError,\
+                                       NoEmailAddressError, AnonymousAccessError
 
 from StringIO import StringIO
 
@@ -73,6 +74,11 @@ class WebmailView(BrowserView):
         return self.context.portal_membership.getAuthenticatedMember()
     
     @property
+    def isAnonymousUser(self):
+        return self.context.portal_membership.isAnonymousUser()
+    
+    
+    @property
     def imap_cache(self):
         #if not self.context.getImap_cache() or self.request.form.get("purge_cache"):
         
@@ -92,14 +98,6 @@ class WebmailView(BrowserView):
     
     @property
     def imap_connection(self):
-        if self._imap_connection:
-            print "#### use con"
-            return self._imap_connection
-        
-        email = self.member.getProperty('email')
-        self._imap_connection = self.webmail_tool.getIMAPConnection(email)
-        print "#### create con"
-        print email, self._imap_connection
         return self._imap_connection
     
     def generateTicketID(self):
@@ -286,12 +284,37 @@ class WebmailView(BrowserView):
      
 
     def __call__(self):
+         # first of all, we check permissions and try to get a 
+         # connection for this user from the webmail tool  
+        try:
+            
+            if self.isAnonymousUser:
+                raise AnonymousAccessError(self.member)
+                
+            email = self.member.getProperty('email')
+            self._imap_connection = self.webmail_tool.getIMAPConnection(email)
+            self.has_imap_connection = True
+            
+        except (NoAccountError, NotInMailgroupError, NoEmailAddressError), e:
+            # no account, no email-address, wrong webmail group. The template
+            # checks has_imap_connection to be true, before rendering any 
+            # content. If has_imap_connection is False the user will see the 
+            # webmail at all, but with a blank page body. 
+            self.Logger.info(e)
+            return self.index()
+        
+        except AnonymousAccessError:
+            # redirect non authenticated to login
+            self.Logger.warn("Anonymous tried to access webmail %s. Check permissions." % self.context.title ) 
+            return self.request.response.redirect("%s/login" % self.context.absolute_url())
+        
+        
         self.imap_cache
         # check and validate the views form data 
         form = self.request.form
         session = self.context.session_data_manager.getSessionData(create=True)
-        # there can only be one action per request.
-             
+        
+        # there can only be one action per request.             
         for i in ('New','Answer','Forward','Delete', 'Refresh'):
             action = form.get('message.actions.%s' % i , False)
             if action:
@@ -310,21 +333,6 @@ class WebmailView(BrowserView):
         
         print self.request.form
         print action, action_on, self.current_path
-        
-        # try to get a connection for this user 
-        try:
-            self.imap_connection
-            self.has_imap_connection = True
-            # no account, no email-address, wrong webmail group 
-        except (NoAccountError, NotInMailgroupError, NoEmailAddressError), e:
-            self.Logger.info(e)
-            return self.index()
-        
-        # handle non authenticated
-        except AttributeError:
-            self.Logger.warn("Anonymous tried to access webmail %s. Check permissions." % self.context.title ) 
-            self.request.response.redirect("%s/login" % self.context.absolute_url())
- 
           
         # if it is a download, we respond in 
         # deliver_attachment() to this request,

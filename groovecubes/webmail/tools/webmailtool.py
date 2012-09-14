@@ -70,6 +70,7 @@ class WebmailTool(UniqueObject, SimpleItem):
         for group in member.getGroups():
             if group in mailgroups:
                 return group
+        
         raise NotInMailgroupError(member)
         
         

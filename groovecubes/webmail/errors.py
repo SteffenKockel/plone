@@ -19,3 +19,10 @@ class NotInMailgroupError(Exception):
         if not msg: 
             msg = 'User "%s" does not belong to this webmails group. Check permissions.' % user
         Exception.__init__(self, msg)
+        
+        
+class AnonymousAccessError(Exception):
+    def __init__(self, user, msg=False):
+        if not msg: 
+            msg = 'User "%s" does not belong to this webmails group. Check permissions.' % user
+        Exception.__init__(self, msg)

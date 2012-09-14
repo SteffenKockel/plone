@@ -3,15 +3,17 @@
       metal:use-macro="here/main_template/macros/master"
       i18n:domain="groovecubes.webmail">
 <body>
-	
-    <div id="main_webmail_container" metal:fill-slot="main" tal:condition="view/has_imap_connection"
-    	tal:define="sort_order view/sort_order;
-        			date_format string:%d.%m.%Y %H:%M;
-        			current_message view/current_message_id;
-        			current_path view/current_path;
-        			messages view/messages;"> 
+	<!-- check for an IMAP connection in the view class, skip instead -->
+    <div id="main_webmail_container" metal:fill-slot="main" tal:condition="view/has_imap_connection">
+    	
+    <tal:block define="sort_order view/sort_order;
+        			   date_format string:%d.%m.%Y %H:%M;
+        			   current_message view/current_message_id;
+        			   current_path view/current_path;
+        			   messages view/messages;"> 
         			<!-- XXX: make the date format configurable through ZMI-->
-      	
+      
+      	<!-- tmp -->	
       	<span  tal:define="member python: view.member"
       		   tal:content="python: member.getProperty('use_imap_cache')"></span>	
         
@@ -86,6 +88,9 @@
        		<input type="hidden" name="trash_folder" tal:attributes="value view/is_trashfolder"/>
        		<input type="hidden" name="current_message" tal:attributes="value view/current_message_id"/>
        </form>
+    
+    </tal:block>
     </div>
+    
 </body>
 </html>
