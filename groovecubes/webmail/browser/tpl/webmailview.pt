@@ -11,7 +11,11 @@
         			current_path view/current_path;
         			messages view/messages;"> 
         			<!-- XXX: make the date format configurable through ZMI-->
-      	<span tal:content="python: context.getTmp_folder().getPhysicalPath()"></span>	
+      	
+      	<span  tal:define="member python: view.member"
+      		   tal:content="python: member.getProperty('use_imap_cache')"></span>	
+        
+        
         <form name="message_tools_form" method="POST">
         	<!--tal:attributes="action string:${context/absolute_url}/emailform">-->
         	<div id="message_toolbox">

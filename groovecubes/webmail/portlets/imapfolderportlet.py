@@ -13,6 +13,7 @@ from groovecubes.webmail.interfaces import IIMAPFolderPortlet
 from groovecubes.webmail import webmailMessageFactory as _
 
 from zope.i18nmessageid import MessageFactory
+from Products.Archetypes.utils import shasattr
 
 
 class Assignment(base.Assignment):
@@ -40,10 +41,21 @@ class Renderer(base.Renderer):
     of this class. Other methods can be added and referenced in the template.
     """
     
-    render = ViewPageTemplateFile('imapfolderportlet.pt')
-
+    
+    
+    
+    def __avail(self):
+        return getattr(self.context, "has_imap_connection", False)
+    
+    @property
+    def available(self):
+        return self.__avail()
+        #return shasattr(self.context, "has_imap_connection")
+    
     def getIMAPFolders(self):
         return self.context.webmail_tool.getConfig()
+    
+    render = ViewPageTemplateFile('imapfolderportlet.pt')
 
 
 class AddForm(base.NullAddForm):

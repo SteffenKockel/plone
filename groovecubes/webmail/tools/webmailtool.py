@@ -9,6 +9,7 @@ from App.special_dtml import DTMLFile
 from zope.app.component.hooks import getSite
 from Products.CMFCore.utils import getToolByName
 
+from groovecubes.webmail.errors import NotInMailgroupError
 from imapclient import IMAPClient
 
 from ast import literal_eval
@@ -64,12 +65,13 @@ class WebmailTool(UniqueObject, SimpleItem):
     def getMailGroup(self, login):
         mailgroups = self.getConfig().keys()
         portal = getSite()
-        users_groups = portal.portal_membership.getAuthenticatedMember().getGroups()
+        member =  portal.portal_membership.getAuthenticatedMember()
         
-        for group in users_groups:
+        for group in member.getGroups():
             if group in mailgroups:
                 return group
-        return False
+        raise NotInMailgroupError(member)
+        
         
     
     security.declarePrivate('getConfig')
@@ -165,7 +167,7 @@ class WebmailTool(UniqueObject, SimpleItem):
     
     security.declareProtected(ManagePortal, 'manage_updateUser')        
     def manage_updateUser(self, REQUEST=None):
-        """ZMI method - form action for the update_user form
+        """ ZMI method - form action for the update_user form
         """
         if REQUEST.form.has_key('update_user'):
             f = REQUEST.form
@@ -178,7 +180,7 @@ class WebmailTool(UniqueObject, SimpleItem):
 
     security.declareProtected(ManagePortal, 'manage_removeUser')
     def manage_removeUser(self, REQUEST=None):
-        """ZMI method - form action for the update_user form.
+        """ ZMI method - form action for the update_user form.
         """
         if self.request.form.has_key('delete_user'):
             f = REQUEST.form
@@ -191,13 +193,10 @@ class WebmailTool(UniqueObject, SimpleItem):
     security.declarePrivate('getIMAPConnection')
     def getIMAPConnection(self, login):
         server_id = self.getMailGroup(login)
-        if not server_id:
-            return None
         server = self.getWrappedServer(server_id)
         return server.getIMAPConnection(login)
             
-        
-        
+            
     def getSMPTConnection(self, login):
         pass
     

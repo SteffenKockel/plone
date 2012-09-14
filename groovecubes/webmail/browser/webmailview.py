@@ -10,9 +10,9 @@ from groovecubes.webmail import webmailMessageFactory as _
 from groovecubes.webmail.browser.utils import parsePlaintextEmailBody, parseHTMLEmailBody,\
                                               parseHeadersFromString, decodeHeader
 
-from BTrees.OOBTree import OOBTree
+from zope.annotation.interfaces import IAnnotations
 
-from groovecubes.webmail.errors import NoAccountError
+from groovecubes.webmail.errors import NoAccountError, NotInMailgroupError, NoEmailAddressError
 
 from StringIO import StringIO
 
@@ -23,11 +23,14 @@ from groovecubes.webmail.config import CHARSETS
 from ast import literal_eval
 import uuid
 import logging
+from BTrees import OOBTree
+from zope.annotation.interfaces import IAnnotations
 
 class IWebmailView(Interface):
     """
     webmail view interface
     """
+
 
 class WebmailView(BrowserView):
     """
@@ -70,31 +73,34 @@ class WebmailView(BrowserView):
         return self.context.portal_membership.getAuthenticatedMember()
     
     @property
+    def imap_cache(self):
+        #if not self.context.getImap_cache() or self.request.form.get("purge_cache"):
+        
+        
+        print self.context
+        
+        print IAnnotations(self.context)
+        #print list(self.context.imap_cache.keys())
+        #if not self.member in [self.context.imap_cache.keys()]:
+        #    self.context.imap_cache.insert(self.member, OOBTree())
+        #    print list(self.context.imap_cache.keys())
+        return self.context.imap_cache
+    
+    @property
     def session(self):
         return self.context.session_data_manager.getSessionData(create=True)
     
+    @property
     def imap_connection(self):
         if self._imap_connection:
             print "#### use con"
             return self._imap_connection
-        try:
-            self.email = self.member.getProperty('email')
-            self._imap_connection = self.webmail_tool.getIMAPConnection(self.email)
-            self.has_imap_connection = True
-            print "#### create con"
-            return self._imap_connection
-
-        # no account 
-        except NoAccountError, e:
-            self.Logger.info(e)
-            self.request.response.redirect(self.portal.absolute_url())
-            return
         
-        # handle non authenticated
-        except AttributeError:
-            self.request.response.redirect("%s/login" % self.context.absolute_url())
-            return 
-    
+        email = self.member.getProperty('email')
+        self._imap_connection = self.webmail_tool.getIMAPConnection(email)
+        print "#### create con"
+        print email, self._imap_connection
+        return self._imap_connection
     
     def generateTicketID(self):
         return "%s" % uuid.uuid4()
@@ -195,9 +201,9 @@ class WebmailView(BrowserView):
         return 
      
     
-    def delete_messages(self, imap_connection, messages):
-        imap_connection.select_folder(self.current_path)
-        imap_connection.delete_messages(messages)
+    def delete_messages(self, messages):
+        self.imap_connection.select_folder(self.current_path)
+        self.imap_connection.delete_messages(messages)
         
         
     def collect_messages(self, imap_connection, details):
@@ -280,11 +286,12 @@ class WebmailView(BrowserView):
      
 
     def __call__(self):
+        self.imap_cache
         # check and validate the views form data 
         form = self.request.form
         session = self.context.session_data_manager.getSessionData(create=True)
         # there can only be one action per request.
-        action = False         
+             
         for i in ('New','Answer','Forward','Delete', 'Refresh'):
             action = form.get('message.actions.%s' % i , False)
             if action:
@@ -304,9 +311,21 @@ class WebmailView(BrowserView):
         print self.request.form
         print action, action_on, self.current_path
         
-        # get the authenticated user and it's email address
-        imap_connection = self.imap_connection()      
-            
+        # try to get a connection for this user 
+        try:
+            self.imap_connection
+            self.has_imap_connection = True
+            # no account, no email-address, wrong webmail group 
+        except (NoAccountError, NotInMailgroupError, NoEmailAddressError), e:
+            self.Logger.info(e)
+            return self.index()
+        
+        # handle non authenticated
+        except AttributeError:
+            self.Logger.warn("Anonymous tried to access webmail %s. Check permissions." % self.context.title ) 
+            self.request.response.redirect("%s/login" % self.context.absolute_url())
+ 
+          
         # if it is a download, we respond in 
         # deliver_attachment() to this request,
         # avoiding unneccessary page reloads
@@ -314,7 +333,7 @@ class WebmailView(BrowserView):
             self.deliver_attachment(imap_connection)
             return
             
-            # deal with message actions 
+        # deal with message specific actions 
         if action and action in ('New','Answer','Forward'):
             ticket_id = self.generateTicketID()
             session = self.session
@@ -329,10 +348,10 @@ class WebmailView(BrowserView):
             self.request.response.redirect(url)
             return
             
-        if action == "Delete":
+        elif action == "Delete":
             self.update_message_list = True
-            self.delete_messages(imap_connection, action_on)
+            self.delete_messages(action_on)
                   
         
-        self.setup(imap_connection) 
+        self.setup(self.imap_connection) 
         return self.index()
