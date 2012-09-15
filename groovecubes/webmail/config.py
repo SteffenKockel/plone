@@ -15,6 +15,10 @@ YES_YES = {"edit": "visible", "view": "visible"}
 YES_NO = {"edit": "visible", "view": "invisible"}
 
 
+# Fetch header list from current folder
+        # XXX: make details configurable via ZMI
+MESSAGE_PREVIEW_DETAILS = ['BODY[HEADER]','FLAGS','INTERNALDATE', 'RFC822.SIZE','BODYSTRUCTURE']
+
 ADD_PERMISSIONS = {
     # -*- extra stuff goes here -*-
 'IMAPServer': 'groovecubes.webmail: Add IMAPServer',

@@ -19,7 +19,7 @@
 				
         		<tal:block repeat="textile textiles">
         			
-        			<option tal:define="selected python: view.current_message_textile_type == textile;
+        			<option tal:define="selected python: view.current_message_text_type == textile;
         								selected python: selected or '';"
         					tal:attributes="value textile;
         									selected selected"
@@ -64,7 +64,7 @@
 				<tal:block condition="python: part.get_content_maintype() == 'text'"
 						   define="encoding python: part.get_content_charset();
 						   		   textile_type python: part.get_content_type();
-						   		   current_textile  python: view.current_message_textile_type;
+						   		   current_textile  python: view.current_message_text_type;
 						   		   body python: part.get_payload(decode=True);
 						   		   is_plain python: textile_type == 'text/plain'">
 						
