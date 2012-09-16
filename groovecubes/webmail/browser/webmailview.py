@@ -43,6 +43,7 @@ class WebmailView(BrowserView):
     implements(IWebmailView)
 
     _imap_connection = False
+    _update_message_list = None
     has_imap_connection = False
     messages = False
     imap_folders = None
@@ -83,6 +84,27 @@ class WebmailView(BrowserView):
     
     
     @property
+    def form(self):
+        return self.request.form
+    
+    
+    @property
+    def action(self): 
+    # there can only be one action per request.             
+        for i in ('New','Answer','Forward','Delete', 'Refresh'):
+            action = self.form.get('message.actions.%s' % i)
+            if not action:
+                continue
+            return action
+        return None
+    
+    
+    @property
+    def action_on(self):
+        return self.form.get('msgid', [])   
+    
+    
+    @property
     def current_path(self):
         # we are not dealing with trash
         if not self.is_trashfolder:
@@ -100,6 +122,13 @@ class WebmailView(BrowserView):
                 if self.current_message_id in messages:
                     return path
     
+    
+    @property
+    def current_message(self):
+        # fetch the message and set the body string
+        # as view property.
+        message = self.imap_connection.fetch(self.current_message_id, DETAILS+['BODY[]'])
+        return message[self.current_message_id]
     
     #@property
     #def current_message_id(self):
@@ -137,7 +166,7 @@ class WebmailView(BrowserView):
     
     @property
     def update_message_list(self):
-        return self.form.get('message.actions.Refresh')
+        return self.form.get('message.actions.Refresh') or self._update_message_list
         
     
     @property
@@ -233,9 +262,7 @@ class WebmailView(BrowserView):
                 self.imap_cache["sort_orders"]["trash"] += sort_order
                 self.imap_cache['trash_messages'].update(messages)
                 self.imap_cache['trash_catalog'].update({folder : sort_order})
-                
-                                               
-            
+                 
         self.messages = self.imap_cache.get("trash_messages")
         self.sort_order = self.imap_cache["sort_orders"].get("trash")
         self.trash_catalog = self.imap_cache.get("trash_catalog")
@@ -309,21 +336,14 @@ class WebmailView(BrowserView):
             
             self.Logger.info("Refreshing IMAP folderstructure")
             self.imap_cache.update({"imap_folders":self.imap_connection.list_folders()})
-        
-        print "issssss", self.is_trashfolder    
-        
+            
         if self.is_trashfolder:
             self.collect_trash()
         else:
             self.collect_messages()
 
-        # fetch the message and set the body string
-        # as view property.
-        current_message = self.imap_connection.fetch(self.current_message_id, DETAILS+['BODY[]'])
-        self.current_message = current_message[self.current_message_id]
-        
-        self.imap_connection.logout()
-        
+        # shut down the connection
+        # self.imap_connection.logout()
         return 
      
 
@@ -358,19 +378,10 @@ class WebmailView(BrowserView):
         
         # XXX check, if context is really content_type "webmail"
         # tmp
-        self.form = self.request.form
-        
-        # there can only be one action per request.             
-        for i in ('New','Answer','Forward','Delete', 'Refresh'):
-            action = self.form.get('message.actions.%s' % i , False)
-            if action:
-                break
-        
-        action_on = self.form.get('msgid', [])
         self.current_message_id = int(self.form.get('show_message', self.form.get('current_message', False))) 
             
         print self.request.form
-        print action, action_on , self.is_trashfolder
+        print self.action, self.action_on , self.is_trashfolder
           
         # if it is a download, we respond in 
         # deliver_attachment() to this request,
@@ -380,13 +391,12 @@ class WebmailView(BrowserView):
             return
             
         # deal with message specific actions 
-        if action and action in ('New','Answer','Forward'):
+        if self.action and self.action in ('New','Answer','Forward'):
             ticket_id = self.generateTicketID()
             
             ticket = { 'source_url': self.context.getPhysicalPath(),
-                       'action': action,
-                       'action_on': action_on,
-                       'attachments': {}}
+                       'action': self.action,
+                       'action_on': self.action_on}
             
             self.session.set(ticket_id, ticket)
             url = '%s/emailform?form.widgets.ticket=%s' 
@@ -394,9 +404,9 @@ class WebmailView(BrowserView):
             self.request.response.redirect(url)
             return
             
-        elif action == "Delete":
-            self.update_message_list = True
-            self.delete_messages(action_on)
+        elif self.action == "Delete":
+             self._update_message_list = True
+             self.delete_messages(self.action_on)
                   
         
         self.setup() 

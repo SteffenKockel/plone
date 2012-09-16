@@ -56,6 +56,7 @@
         							status python: replied or unseen;
         							is_current python: view.parseIsCurrentClass(msgid);         					
         							classes string:${unseen} ${is_current}"
+        				tal:on-error="nothing"
         				tal:attributes="class classes">       				
         							
         
@@ -75,6 +76,12 @@
         					         tal:attributes="value msgid" 
         					         ><span tal:content="subject"></span></button></td>
         				<td><span class="message_date" tal:content="python:date.strftime(date_format)"></span></td>
+        				<td><span tal:condition="python: size > 1024 and size < 10240000"
+        						  tal:content="python: '%.1fK' % (size/102400.00)"></span>
+        					<span tal:condition="python: size >= 10240000 and size < 1024000000"
+        						  tal:content="python: '%.1fMB' % (size/1024000.00)"></span>
+        					
+        				</td>
         			</tr>
         		</tal:tdwrap>
         	</table>
@@ -87,6 +94,7 @@
        		<input type="hidden" name="trash_folder" tal:attributes="value view/is_trashfolder"/>
        		<input type="hidden" name="current_message" tal:attributes="value view/current_message_id"/>
        </form>
+       <span tal:content="view/imap_connection/logout"></span>
     
     </tal:block> 
     </div>
