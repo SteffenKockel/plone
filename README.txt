@@ -1,17 +1,19 @@
 .. contents::
+  
+  - HISTORY
+  - SOURCE 
 
-.. Note!
-   -----
-   Update the following URLs to point to your:
+.: HISTORY :.
 
-   - code repository
-   - bug tracker
-   - questions/comments feedback mail
-   (do not set a real mail, to avoid spams)
+== version 0.1 ==
+  This is an prior release version. You may find more insects here
+  than functionality. Looking forward to release a working version.  
 
-   Or remove it if not used.
 
-- Code repository: http://svn.somewhere.com/...
-- Questions and comments to somemailing_list
-- Report bugs at http://bug.somewhere.com/..
+
+.: SOURCE :.
+
+- Code repository: https://github.com/SteffenKockel/plone.git 
+- Questions and comments s[dot]kockel[et]groovecubes[dot]de
+- Report bugs at https://github.com/SteffenKockel/plone/issues?milestone=1&state=open
 
