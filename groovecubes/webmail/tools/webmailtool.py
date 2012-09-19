@@ -2,7 +2,7 @@ from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.CMFCore.permissions import ManagePortal
 from groovecubes.webmail.interfaces.webmailtool import IWebmailTool
 from OFS.SimpleItem import SimpleItem
-from Products.CMFCore.utils import UniqueObject
+from Products.CMFCore.utils import UniqueObject, SimpleItemWithProperties
 from zope.interface import implements
 from App.class_init import InitializeClass
 from App.special_dtml import DTMLFile
@@ -14,9 +14,11 @@ from imapclient import IMAPClient
 
 from ast import literal_eval
 import uuid
+from zope.annotation.interfaces import IAnnotatable, IAnnotations
 
 
-class WebmailTool(UniqueObject, SimpleItem):
+
+class WebmailTool(UniqueObject, SimpleItemWithProperties):
     """ Webmail tool."""
     id = "webmail_tool"
     implements(IWebmailTool)
@@ -28,22 +30,28 @@ class WebmailTool(UniqueObject, SimpleItem):
                           'action': 'manage_overview'
                         },
                         {'label':'mailserver users',
-                        'action':'manage_mailserver_users'
+                         'action':'manage_mailserver_users'
                         }
                        )+ SimpleItem.manage_options
                       )
     
     
-    active=connections = {}
-        
+    
+    @property
+    def servers(self):
+        portal = getSite()
+        return literal_eval(portal.portal_properties.webmail_properties.imap_server)
+    
+
     security.declarePrivate('getWrappedServer')             
     def getWrappedServer(self, server):
-        """ A helper function to import the needed wrapper class as 
+        """ 
+        A helper function to import the needed wrapper class as 
         defined in webmail_properties sheet. 
         
         @param wrapper_name string # the name of the server to connect 
-        
         """
+        
         c = self.getConfig()[server]
         wrapper_args = c['mailserver_args']
         wrapper_class = c['mailserver_type']
@@ -55,11 +63,52 @@ class WebmailTool(UniqueObject, SimpleItem):
         return wrapped_mailserver
         
     
-    security.declarePrivate('getUserList')
-    def getUserList(self, server):
-        server = self.getWrappedServer(server)
-        return server.getUserList()
+    security.declarePrivate('authenticateCredentials')
+    def authenticateCredentials(self, login, password ):
+        """
+        This extends the plone PAS plugin. Because we don't
+        want to register a new plugin for every server, we
+        hold a member database here.
+         
+        Iter over all servers that are
+         o registered
+         o enabled
+        """ 
+        
+        for server in self.servers.keys():
+            print "try:", server 
+            
+            s = self.getWrappedServer(server)
+            
+            if s.authenticateCredentials(login, password):
+                return (login, login)
+             
+        return None
     
+    
+    security.declarePrivate('enumerateUsers')
+    def enumerateUsers(self, **kwargs):
+                       
+#                       id=None, login=None,
+#                              sort_by=None, max_results=None,
+#                              exact_match=False, **kwargs):
+        """
+        This extends plone PAS plugins abilities to 
+        enumerate and look up for users, authenticated
+        against external IMAP servers.
+        """
+        
+        key = kwargs.get('id') or kwargs.get('login')
+        if not key:
+            return None
+            
+        users = []
+        for server in self.servers.keys():
+            server = self.getWrappedServer(server)
+            users += server.enumerateUsers(**kwargs)
+        
+        print users    
+        return users
     
     security.declarePrivate('getMailGroup')
     def getMailGroup(self, login):
@@ -74,7 +123,6 @@ class WebmailTool(UniqueObject, SimpleItem):
         raise NotInMailgroupError(member)
         
         
-    
     security.declarePrivate('getConfig')
     def getConfig(self):
         portal = getSite()
@@ -189,8 +237,8 @@ class WebmailTool(UniqueObject, SimpleItem):
             server.removeUser()
             message = "Removed user %s from server %s." % (f['login'],f['server'])
             return self.manage_mailserver_users(manage_tabs_message=message)
-
-
+    
+    
     security.declarePrivate('getIMAPConnection')
     def getIMAPConnection(self, login):
         server_id = self.getMailGroup(login)

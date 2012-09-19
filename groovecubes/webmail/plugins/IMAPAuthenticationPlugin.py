@@ -5,12 +5,13 @@ from Products.CMFCore.utils import getToolByName
 from Acquisition import aq_inner
 
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin,\
-    ICredentialsUpdatePlugin
+    ICredentialsUpdatePlugin, IUserEnumerationPlugin
 from Products.PluggableAuthService.utils import classImplements
 from App.class_init import default__class_init__ as InitializeClass
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile as PTF
 from zope.interface import Interface
 from base64 import encodestring
+from zope.component.hooks import getSite
 
 
 _n = "addIMAPAuthenticationPlugin"
@@ -24,6 +25,7 @@ manage_addIMAPAuthenticationPluginForm = PTF( 'www/addIMAPAuthenticationPlugin',
 class IIMAPAuthenticationPlugin(Interface):
       """Marker"""
       
+
 def addIMAPAuthenticationPlugin(self, id, title='', REQUEST=None):
     """ Add this plugin to Plone PAS """
     o = IMAPAuthenticationPlugin(id, title)
@@ -46,6 +48,13 @@ class IMAPAuthenticationPlugin(BasePlugin):
         self._setId(id)
         self.title = title
 
+    
+    #@property
+    #def webmail_tool(self):
+    #    context = getSite()
+    #    return getToolByName(context, 'webmail_tool')
+    
+    
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
 
@@ -61,49 +70,46 @@ class IMAPAuthenticationPlugin(BasePlugin):
 
         if "login" not in credentials or "password" not in credentials:
             return None
-        
-        
-        #server_tool = getToolByName(self.context, 'webmail_tool')
-        #self.servers = server_tool.getDict()
 
-        login=credentials["login"]
-        password=credentials["password"]
+        login = credentials["login"]
+        password = credentials["password"]
         
-        from imapclient import IMAPClient
+        context = getSite()
         
-        context = aq_inner(self)
-        server_tool = getToolByName(context, 'webmail_tool')
-        servers = server_tool.getDict()
-         
-        for i in servers.values():
-            
-            try:
-                S = IMAPClient(i["host"], use_uid=True, ssl=True) #@TODO (ssl)          
-                S.login(login, password)
-                S.logout()
+        # exclude local users from login checks here, to
+        # save bandwith.
+        local_users = getToolByName(context, 'portal_membership')
+        local_users =  [x.getName() or x.getEmail() for x in local_users.listMembers()]
+        local_users += ['admin']
         
-                self._getPAS().updateCredentials(self.REQUEST, self.REQUEST.RESPONSE,
-                                                 login, password)
-                return (login, login)
+        if login in local_users: 
+            return None
         
-            except StandardError, e:            
-                print e  
-                continue
+        webmail_tool = getToolByName(context, 'webmail_tool')
         
-        return None
-       
-    #security.declarePrivate('updateCredentials')
-    #def updateCredentials(self, request, response, login, new_password):
-    #   """ Respond to change of credentials (NOOP for basic auth). """
-    #    cookie_str = '%s:%s' % (login.encode('hex'), new_password.encode('hex'))
-    #    cookie_val = encodestring(cookie_str)
-    #    cookie_val = cookie_val.rstrip()
-    #    response.setCookie(self.cookie_name, quote(cookie_val), path='/')
+        try:
+            self.webmail_tool.authenticateCredentials(login, password)
+            self._getPAS().updateCredentials(self.REQUEST, 
+                                             self.REQUEST.RESPONSE,
+                                             login, 
+                                             password )
+            return (login, login)
+        except StandardError, e:
+            print e
+            return None
+    
+    security.declarePrivate('enumerateUsers')
+    def enumerateUsers(self, **kwargs):
+        context = getSite()
+        webmail_tool = getToolByName(context, 'webmail_tool')
+        users =  webmail_tool.enumerateUsers(pluginid=self.getId(),**kwargs)
+        return users
 
 
 classImplements(IMAPAuthenticationPlugin,
-                IIMAPAuthenticationPlugin)
-    #            IAuthenticationPlugin)
-    #            ICredentialsUpdatePlugin)
+                IIMAPAuthenticationPlugin,
+                IAuthenticationPlugin,
+                IUserEnumerationPlugin)
+                ## XXX ICredentialsUpdatePlugin)
 
 InitializeClass(IMAPAuthenticationPlugin)
