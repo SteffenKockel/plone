@@ -76,27 +76,16 @@ class IMAPAuthenticationPlugin(BasePlugin):
         
         context = getSite()
         
-        # exclude local users from login checks here, to
-        # save bandwith.
-        local_users = getToolByName(context, 'portal_membership')
-        local_users =  [x.getName() or x.getEmail() for x in local_users.listMembers()]
-        local_users += ['admin']
-        
-        if login in local_users: 
-            return None
-        
         webmail_tool = getToolByName(context, 'webmail_tool')
-        
-        try:
-            self.webmail_tool.authenticateCredentials(login, password)
-            self._getPAS().updateCredentials(self.REQUEST, 
-                                             self.REQUEST.RESPONSE,
-                                             login, 
-                                             password )
+            
+        if self.webmail_tool.authenticateCredentials(login, password):
+            self._getPAS().updateCredentials( self.REQUEST, 
+                                              self.REQUEST.RESPONSE,
+                                              login, 
+                                              password )
             return (login, login)
-        except StandardError, e:
-            print e
-            return None
+        return None
+    
     
     security.declarePrivate('enumerateUsers')
     def enumerateUsers(self, **kwargs):
@@ -107,9 +96,7 @@ class IMAPAuthenticationPlugin(BasePlugin):
 
 
 classImplements(IMAPAuthenticationPlugin,
-                IIMAPAuthenticationPlugin,
                 IAuthenticationPlugin,
                 IUserEnumerationPlugin)
-                ## XXX ICredentialsUpdatePlugin)
 
 InitializeClass(IMAPAuthenticationPlugin)

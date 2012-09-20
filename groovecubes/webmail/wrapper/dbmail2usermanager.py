@@ -166,21 +166,24 @@ class DBMail2UserManager:
     
     def authenticateCredentials(self, login, password):
         """ 
-        Authenticate a user against the imap server, to verify
-        him as plone user.
+        Authenticate a user against the imap servers user database, 
+        to verify him as plone user.
         """
-        server = IMAPClient(self.host, use_uid=True, ssl=self.ssl)
-        try:
-            server.login(login, password)
-            server.logout()
-            return True
-         
-        except StandardError, e:
-            self.Logger.info("login failed")
+        print "authenticate"
+        query = """ SELECT userid,passwd 
+                    FROM dbmail_users
+                    WHERE userid = '%s'""" % login
+        self.cursor.execute(query)
+        user = self.cursor.fetchall()
+        
+        if user:
+            if password == user[0][1]:
+                return True
             
         return False
     
     def enumerateUsers(self, **kwargs):
+        #print "enumerate"
         """ -> ( user_info_1, ... user_info_N )
 
         o Return mappings for users matching the given criteria.
@@ -227,27 +230,46 @@ class DBMail2UserManager:
         
         +++
         """
-        print kwargs
+        #print kwargs
          
-        key = kwargs.get('id') or kwargs.get('login')
+        keys = kwargs.get('id') or kwargs.get('login')
         
-        query = """ SELECT userid, passwd  
-                    FROM dbmail_users 
-                    WHERE userid = '%s' """ % key 
+        if hasattr(keys, 'lower'):
+            keys = [keys]
+            
+        if kwargs.get("exact_match"):
         
-        #if kwargs.get("exact_match"):
-        #    self.cursor.
+            query = """ SELECT userid, passwd  
+                        FROM dbmail_users 
+                        WHERE userid = '%s' """ % keys[0]
+            
+            for key in keys[1:]:
+                query += """OR userid = '%s '""" % key
+            
+            
+        if kwargs.get('sort_by'):
+            query += """ORDER BY userid"""
+            
+            
+        # print query
+        self.cursor.execute(query)
+        users = self.cursor.fetchall()
         
-        return [{'id' : '',
-                 'login' : '',
-                 'pluginid' : kwargs.get('pluginid'),
-                 'editurl': '/edit_mx1'
-               }]
+        if not users:
+            return None          
+        
+        _users = []
+        for user in users:
+            _users += [{'id' : user[0],
+                        'login' : user[0],
+                        'pluginid' : kwargs.get('pluginid'),
+                        'editurl': '/edit_mx1'
+                      }]
+        # print _users
+        return _users
         
         
         
-        
-    
     def getIMAPConnection(self, login):
         if not login:
             raise NoEmailAddressError(login)

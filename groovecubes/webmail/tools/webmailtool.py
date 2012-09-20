@@ -16,9 +16,12 @@ from ast import literal_eval
 import uuid
 from zope.annotation.interfaces import IAnnotatable, IAnnotations
 
+import logging
 
+from BTrees.OOBTree import OOBTree
+from hashlib import sha1
 
-class WebmailTool(UniqueObject, SimpleItemWithProperties):
+class WebmailTool(UniqueObject, SimpleItem):
     """ Webmail tool."""
     id = "webmail_tool"
     implements(IWebmailTool)
@@ -29,37 +32,84 @@ class WebmailTool(UniqueObject, SimpleItemWithProperties):
     manage_options = (( { 'label': 'edit',
                           'action': 'manage_overview'
                         },
-                        {'label':'mailserver users',
-                         'action':'manage_mailserver_users'
+                        { 'label': 'mailserver users',
+                          'action': 'manage_mailserver_users'
                         }
-                       )+ SimpleItem.manage_options
+                       ) + SimpleItem.manage_options
                       )
     
+    Logger = logging.getLogger("groovecubes.webmail")
+    
+    @property
+    def _cache(self):
+        if getattr(self, '_v_cache', None) is None:
+            self._v_cache = OOBTree()
+        return self._v_cache
+    
+    
+    def clear_cache(self):
+        self._cache.clear()
+    
+    
+    @property
+    def portal(self):
+        return getSite()
+    
+    
+    @property
+    def portal_membership(self):
+        return getToolByName(self.portal, 'portal_membership')
+    
+    
+    @property
+    def session(self):
+        return self.portal.session_data_manager.getSessionData(create=True)
+    
+    
+    @property
+    def webmail_properties(self):
+        return self.portal.portal_properties.webmail_properties
     
     
     @property
     def servers(self):
-        portal = getSite()
-        return literal_eval(portal.portal_properties.webmail_properties.imap_server)
+        return literal_eval(self.webmail_properties.imap_server)
+    
+    
+    @property
+    def wrappers(self):
+        return literal_eval(self.webmail_properties.wrapper)
     
 
     security.declarePrivate('getWrappedServer')             
-    def getWrappedServer(self, server):
+    def getWrappedServer(self, server, login=None, refresh=False):
         """ 
         A helper function to import the needed wrapper class as 
         defined in webmail_properties sheet. 
         
         @param wrapper_name string # the name of the server to connect 
         """
+        _ckey = '%s:%s' % (server, login)
+        #print "###############", _ckey, list(self._cache.keys())
         
-        c = self.getConfig()[server]
+        if login and self._cache.get(_ckey):
+            self.Logger.info("reuse Wrapper")
+            return self._cache[_ckey]
+
+        c = self.servers[server]
+        
         wrapper_args = c['mailserver_args']
         wrapper_class = c['mailserver_type']
         
-        wrapper = self.getWrapperList()[wrapper_class]
+        wrapper = self.wrappers[wrapper_class]
         wrapper = __import__(wrapper, globals(), locals(), [wrapper_class], -1)
         wrapper = getattr(wrapper, wrapper_class)
         wrapped_mailserver = wrapper(c['server_id'], **c)
+        
+        if login and not self._cache.get(_ckey) or refresh:
+            self.Logger.info("cache wrapper")
+            self._cache.update({_ckey: wrapped_mailserver})
+        
         return wrapped_mailserver
         
     
@@ -74,24 +124,21 @@ class WebmailTool(UniqueObject, SimpleItemWithProperties):
          o registered
          o enabled
         """ 
+        if not login or not password or login == 'admin':
+            return None
         
         for server in self.servers.keys():
-            print "try:", server 
-            
-            s = self.getWrappedServer(server)
-            
+           
+            s = self.getWrappedServer(server, login=login)           
+
             if s.authenticateCredentials(login, password):
-                return (login, login)
-             
+                return True
+        
         return None
     
     
     security.declarePrivate('enumerateUsers')
     def enumerateUsers(self, **kwargs):
-                       
-#                       id=None, login=None,
-#                              sort_by=None, max_results=None,
-#                              exact_match=False, **kwargs):
         """
         This extends plone PAS plugins abilities to 
         enumerate and look up for users, authenticated
@@ -99,22 +146,30 @@ class WebmailTool(UniqueObject, SimpleItemWithProperties):
         """
         
         key = kwargs.get('id') or kwargs.get('login')
-        if not key:
+        if not key or key == 'admin':
             return None
-            
+        
+        # generate a cache key for this query
+        _ckey = sha1(repr(kwargs)).hexdigest()
+        
+        if self._cache.get(_ckey):
+            self.Logger.info("reuse query") # , self._cache.get(_ckey)
+            return self._cache[_ckey]
+        
         users = []
         for server in self.servers.keys():
-            server = self.getWrappedServer(server)
+            server = self.getWrappedServer(server, login=key)
             users += server.enumerateUsers(**kwargs)
         
-        print users    
+        self.Logger.info("cache query")
+        self._cache.update({_ckey:users})    
         return users
+    
     
     security.declarePrivate('getMailGroup')
     def getMailGroup(self, login):
-        mailgroups = self.getConfig().keys()
-        portal = getSite()
-        member =  portal.portal_membership.getAuthenticatedMember()
+        mailgroups = self.servers.keys()
+        member =  self.portal_membership.getAuthenticatedMember()
         
         for group in member.getGroups():
             if group in mailgroups:
@@ -122,25 +177,11 @@ class WebmailTool(UniqueObject, SimpleItemWithProperties):
         
         raise NotInMailgroupError(member)
         
-        
-    security.declarePrivate('getConfig')
-    def getConfig(self):
-        portal = getSite()
-        servers = literal_eval(portal.portal_properties.webmail_properties.imap_server)
-        return servers
-    
     
     security.declarePrivate('setConfig')
     def setConfig(self, dict):
-        portal = getSite()
-        portal.portal_properties.webmail_properties.imap_server = str(dict)
+        self.portal.portal_properties.webmail_properties.imap_server = str(dict)
         
-    
-    security.declarePrivate('getWrapperList')
-    def getWrapperList(self):
-        portal = getSite()
-        return literal_eval(portal.portal_properties.webmail_properties.wrapper)
-
     
     security.declareProtected(ManagePortal, 'manage_overview')
     manage_overview = DTMLFile('dtml/webmailtool', globals())
@@ -245,9 +286,5 @@ class WebmailTool(UniqueObject, SimpleItemWithProperties):
         server = self.getWrappedServer(server_id)
         return server.getIMAPConnection(login)
             
-            
-    def getSMPTConnection(self, login):
-        pass
-    
         
 InitializeClass(WebmailTool)
