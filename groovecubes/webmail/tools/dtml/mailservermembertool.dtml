@@ -10,7 +10,7 @@
 	<tr><th><p>Servers</p></th>
 	<th></th></tr>
 	<tr><td valign="top">
-		<dtml-in expr="getConfig().keys()">
+		<dtml-in expr="servers.keys()">
 			<dtml-let item=sequence-item id="item">
 				<form action="manage_mailserver_users" method="post">
 				<button value=<dtml-var id> name="server"><dtml-var id></button></br>

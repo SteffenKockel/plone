@@ -16,8 +16,8 @@
         <th><p>SSL</p></th>
         <th><p>Additional Wrapper args</p></th></tr>
  		
- 		<dtml-in expr="getConfig().keys()">
-        <dtml-let item=sequence-item id="item" vals="getConfig()[id]">
+ 		<dtml-in expr="servers.keys()">
+        <dtml-let item=sequence-item id="item" vals="servers[id]">
   			<tr>
             	<td><input type="checkbox" name="server_id" value=<dtml-var id>></td>
                 <td><p><dtml-var expr="vals['server_id']"></p></td>
@@ -47,8 +47,8 @@
         <tr>
         	<td><p>Mailserver member wrapper</p></td>
             <td><select name="mailserver_type:list">
-            		<dtml-in expr="getWrapperList().keys()">
-        			<dtml-let item=sequence-item id="item" vals="getWrapperList()">
+            		<dtml-in expr="wrappers.keys()">
+        			<dtml-let item=sequence-item id="item" vals="wrappers">
             			<option value=<dtml-var id>><dtml-var id></option>
            			</dtml-let></dtml-in>
             	</select></td></tr>

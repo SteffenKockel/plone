@@ -14,7 +14,7 @@ from groovecubes.webmail.browser.utils import parsePlaintextEmailBody, parseHTML
 
 from groovecubes.webmail.errors import NoAccountError, NotInMailgroupError,\
                                        NoEmailAddressError, AnonymousAccessError
-
+from Acquisition import aq_inner
 from StringIO import StringIO
 
 
@@ -356,7 +356,7 @@ class WebmailView(BrowserView):
             if self.is_anonymous:
                 raise AnonymousAccessError(self.member)
                 
-            email = self.member.getProperty('email')
+            email = self.member.getId()
             # XXX There could be situations where we don't need the connection
             # but have rights t oget one, if we display local cached data. 
             # Though it would be nice, to skip any unneccessary connections.

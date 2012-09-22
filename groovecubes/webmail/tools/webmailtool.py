@@ -90,27 +90,48 @@ class WebmailTool(UniqueObject, SimpleItem):
         @param wrapper_name string # the name of the server to connect 
         """
         _ckey = '%s:%s' % (server, login)
-        #print "###############", _ckey, list(self._cache.keys())
+        # print "###############", _ckey, list(self._cache.keys())
         
         if login and self._cache.get(_ckey):
-            self.Logger.info("reuse Wrapper")
+            self.Logger.debug("reuse Wrapper")
             return self._cache[_ckey]
 
         c = self.servers[server]
-        
         wrapper_args = c['mailserver_args']
         wrapper_class = c['mailserver_type']
         
         wrapper = self.wrappers[wrapper_class]
+        
         wrapper = __import__(wrapper, globals(), locals(), [wrapper_class], -1)
         wrapper = getattr(wrapper, wrapper_class)
         wrapped_mailserver = wrapper(c['server_id'], **c)
+        
         
         if login and not self._cache.get(_ckey) or refresh:
             self.Logger.info("cache wrapper")
             self._cache.update({_ckey: wrapped_mailserver})
         
         return wrapped_mailserver
+    
+    
+    security.declarePrivate('getIMAPConnection')
+    def getIMAPConnection(self, login):
+        server = self.getMailGroup(login)
+        # print server, "#", login
+        _ckey = '%s:%s' % (server, login)
+        
+        if self._cache.get(_ckey):
+            conn = self._cache[_ckey].getIMAPConnection(login)
+            return conn
+        
+        server = self.getWrappedServer(server)
+        return server.getIMAPConnection(login)
+    
+    
+    security.declarePrivate('getUserList')
+    def getUserList(self, server):
+        server = self.getWrappedServer(server)
+        return server.getUserList()
         
     
     security.declarePrivate('authenticateCredentials')
@@ -130,7 +151,7 @@ class WebmailTool(UniqueObject, SimpleItem):
         for server in self.servers.keys():
            
             s = self.getWrappedServer(server, login=login)           
-
+            
             if s.authenticateCredentials(login, password):
                 return True
         
@@ -153,7 +174,7 @@ class WebmailTool(UniqueObject, SimpleItem):
         _ckey = sha1(repr(kwargs)).hexdigest()
         
         if self._cache.get(_ckey):
-            self.Logger.info("reuse query") # , self._cache.get(_ckey)
+            self.Logger.debug("reuse query") # , self._cache.get(_ckey)
             return self._cache[_ckey]
         
         users = []
@@ -279,12 +300,5 @@ class WebmailTool(UniqueObject, SimpleItem):
             message = "Removed user %s from server %s." % (f['login'],f['server'])
             return self.manage_mailserver_users(manage_tabs_message=message)
     
-    
-    security.declarePrivate('getIMAPConnection')
-    def getIMAPConnection(self, login):
-        server_id = self.getMailGroup(login)
-        server = self.getWrappedServer(server_id)
-        return server.getIMAPConnection(login)
-            
-        
+                
 InitializeClass(WebmailTool)

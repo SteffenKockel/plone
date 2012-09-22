@@ -8,35 +8,47 @@ from groovecubes.webmail.errors import NoAccountError, NoEmailAddressError
 
 import logging
 
+
 class DBMail2UserManager:
     implements(IMailserverUserManager)
     
-    Logger = logging.getLogger("groovecubes.webmail")
     
-    def __init__(self, id, **config):
+    Logger = logging.getLogger("groovecubes.webmail")
+    DB = None
+    
+    def __init__(self, id, **kwargs):
         self.id = id
-        self.host = config['host']
-        self.port = config['port']
-        self.ssl = config.get('ssl', False)
-        
-        
-        additional_args = config['mailserver_args']
-        
-        if additional_args.has_key('port'):
-            additional_args['port'] = int(additional_args['port'])
-            
-        if additional_args['backend'] == "mysql":
-            del additional_args['backend']    
-            self.db = MySQLdb.connect(**additional_args)
+        self.host = kwargs['host']
+        self.ssl = kwargs.get('ssl', False)
+
+        wrapper_args = kwargs['mailserver_args']            
+        if wrapper_args['backend'] == "mysql":
+            del wrapper_args['backend']    
+            self._DB = MySQLdb
         else:
             # not tested
-            self.db = pgsql.connect(**additional_args)
-                 
-        self.config = config
-        self.cursor = self.db.cursor()
+            self._DB = pgsql
+            
+            kwargs['port'] = int(kwargs.get('port', False))
+        
+        self._db_config = kwargs['mailserver_args']
+        
+    
+    @property
+    def cursor(self):
+        
+        try:
+            self.DB.ping()
+        # except MySQLdb.OperationalError, e: # won't work for pgsql
+        except StandardError, e:
+            self.Logger.info(e)
+            self.DB = self._DB.connect(**self._db_config)
+        
+        return self.DB.cursor() ## bad !!
+    
         
     def addUser(self, login, password, aliases, max_mailbox_size):
-        
+        ## create the user
         query = """INSERT INTO dbmail_users 
                        (userid, passwd, client_idnr, maxmail_size,
                         encryption_type, last_login) 
@@ -44,14 +56,16 @@ class DBMail2UserManager:
                    ('%s', '%s', 0, '%s','', NOW())
                    """ % (login, password, max_mailbox_size * 1024000, )
                    
-        self.cursor.execute(query)
-        self.db.commit()
+        c = self.cursor
+        c.execute(query)
+        self.DB.commit()
+        
         
         query = """ SELECT user_idnr 
                     FROM dbmail_users
                     WHERE userid = '%s'""" % login
-        self.cursor.execute(query)    
-        id = self.cursor.fetchall()[0][0]
+        c.execute(query)    
+        id = c.fetchall()[0][0]
         
         ## create the mailbox
         query = """ INSERT INTO dbmail_mailboxes 
@@ -60,8 +74,9 @@ class DBMail2UserManager:
                       draft_flag, permission) 
                     VALUES 
                    ('INBOX', %d, 1, 1, 1, 1, 1, 1, 2)""" % int(id)
-        self.cursor.execute(query)
-        self.db.commit()
+        c.execute(query)
+        self.DB.commit()
+        c.close()
         
         for alias in aliases:
             self.addAlias(id, alias)
@@ -73,8 +88,10 @@ class DBMail2UserManager:
                         maxmail_size = %d
                     WHERE user_idnr = %d 
                 """ % (login, quota * 1024000, id)
-        self.cursor.execute(query)
-        self.db.commit()
+        c = self.cursor
+        c.execute(query)
+        self.DB.commit()
+        c.close()
         
         cur_aliases = self.getAliases(id)
         ## add new aliases
@@ -100,11 +117,14 @@ class DBMail2UserManager:
         query = """ SELECT passwd,encryption_type
                     FROM dbmail_users
                     WHERE userid = '%s'""" % login
-                    
-        if not self.cursor.execute(query):
+
+        c = self.cursor                    
+        if not c.execute(query):
             return False
         
-        cred = self.cursor.fetchall()
+        cred = c.fetchall()
+        c.close()
+        
         return cred[0] 
         
     
@@ -113,31 +133,39 @@ class DBMail2UserManager:
                     (alias, deliver_to, client_idnr)
                    VALUES
                     ('%s','%s', 0)""" % (alias, id)
-        
-        self.cursor.execute(query)
-        self.db.commit()
-          
+        c = self.cursor
+        c.execute(query)
+        self.DB.commit()
+        c.close()
+    
     
     def removeAlias(self, id, alias):
         query = """DELETE FROM dbmail_aliases
                    WHERE alias = '%s'
                    AND
                    deliver_to = %d """ % (alias, id)
-        self.cursor.execute(query)
-        self.db.commit()
+        c = self.cursor
+        c.execute(query)
+        self.DB.commit()
+        c.close()
         
         
     def getAliases(self, id):
-        query = "SELECT alias FROM dbmail_aliases WHERE deliver_to = %d" % int(id)
-        self.cursor.execute(query)
+        query = """SELECT alias 
+                   FROM dbmail_aliases 
+                   WHERE deliver_to = %d """ % int(id)
+        c = self.cursor
+        c.execute(query)
         aliases = []
-        for alias in self.cursor.fetchall():
+        
+        for alias in c.fetchall():
             aliases.append(alias[0])
         
+        c.close()
         return aliases
         
             
-    def getUserList(self):
+    def getUserList(self,**kwargs):
         """ 
         This is mostly for the user management on the email server. 
         """
@@ -146,11 +174,11 @@ class DBMail2UserManager:
                     FROM dbmail_users 
                     JOIN  dbmail_aliases 
                     WHERE dbmail_users.user_idnr = dbmail_aliases.deliver_to"""
-        
-        self.cursor.execute(query)
         users = {}
+        c = self.cursor
+        c.execute(query)
       
-        for row in self.cursor.fetchall():
+        for row in c.fetchall():
             if not users.has_key(row[1]):
                 users[row[1]] = {'id':row[0],
                                  'login':row[1],
@@ -161,20 +189,24 @@ class DBMail2UserManager:
                                  }
             else:
                 users[row[1]]['aliases'].append(row[5])
+        c.close()
         return users
     
-    
+
     def authenticateCredentials(self, login, password):
         """ 
         Authenticate a user against the imap servers user database, 
         to verify him as plone user.
         """
-        print "authenticate"
+        # print "authenticate"
         query = """ SELECT userid,passwd 
                     FROM dbmail_users
                     WHERE userid = '%s'""" % login
-        self.cursor.execute(query)
-        user = self.cursor.fetchall()
+        
+        c = self.cursor
+        c.execute(query)
+        user = c.fetchall()
+        c.close()
         
         if user:
             if password == user[0][1]:
@@ -182,6 +214,7 @@ class DBMail2UserManager:
             
         return False
     
+
     def enumerateUsers(self, **kwargs):
         #print "enumerate"
         """ -> ( user_info_1, ... user_info_N )
@@ -230,7 +263,7 @@ class DBMail2UserManager:
         
         +++
         """
-        #print kwargs
+        # print kwargs
          
         keys = kwargs.get('id') or kwargs.get('login')
         
@@ -249,11 +282,12 @@ class DBMail2UserManager:
             
         if kwargs.get('sort_by'):
             query += """ORDER BY userid"""
-            
-            
+                
         # print query
-        self.cursor.execute(query)
-        users = self.cursor.fetchall()
+        c = self.cursor
+        c.execute(query)
+        users = c.fetchall()
+        c.close()
         
         if not users:
             return None          
@@ -269,16 +303,18 @@ class DBMail2UserManager:
         return _users
         
         
-        
     def getIMAPConnection(self, login):
-        if not login:
-            raise NoEmailAddressError(login)
-        
         cred = self.getCredentials(login)
-        if not cred:
+        if not login or not cred:
             raise NoAccountError(login)
         
-        server = IMAPClient(self.host, use_uid=True, ssl=self.ssl)
-        server.login(login, cred[0])
-        return server
+        try:
+            self._imap.noop()
+            return self._imap
+        except StandardError, e:
+            self.Logger.info("Caching IMAP connection.")
+        self._imap = IMAPClient(self.host, use_uid=True, ssl=self.ssl)
+        self._imap.login(login, cred[0])
+        return self._imap
+        
     

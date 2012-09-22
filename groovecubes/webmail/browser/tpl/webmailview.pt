@@ -16,8 +16,8 @@
       		
       	<span  style="color:red"
       		   tal:define="member python: view.member;
-      					   cache python: view.imap_cache"
-      		   tal:content="python: cache['trash_messages']"></span>
+      					   cache python: list(view.imap_cache.keys())"
+      		   tal:content="python: cache"></span>
       		   
         <form name="message_tools_form" method="POST">
         	
