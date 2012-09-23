@@ -51,7 +51,7 @@ class WebmailView(BrowserView):
     preview_message = None
     default_textile_type = 'text/plain' 
     
-    Logger = logging.getLogger("groovecubes.webmail")
+    Logger = logging.getLogger("groovecubes.webmail.WebmailView")
     
     def __init__(self, context, request):
         self.context = context
@@ -80,7 +80,7 @@ class WebmailView(BrowserView):
 
     @property
     def imap_cache(self):
-        return self.context.getImap_cache(self.member.getName())
+        return self.context.getImap_cache(self.member.getId())
     
     
     @property
@@ -246,7 +246,7 @@ class WebmailView(BrowserView):
             
             self.Logger.info("Refreshing trash map.")
             # this resets the users cache
-            self.context.setImap_cache(self.member.getName(), purge=True)
+            self.context.setImap_cache(self.member.getId(), purge=True)
             # set a default for the sort order            
             self.imap_cache["sort_orders"].get("trash") or\
                 self.imap_cache["sort_orders"].setdefault("trash", [])
@@ -280,21 +280,22 @@ class WebmailView(BrowserView):
     def collect_messages(self):
         # select the folder
         self.imap_connection.select_folder(self.current_path)
-        
+        # create message list cache_key
         cache_path = "messages:%s" % self.current_path
+        
         if not self.imap_cache.get(cache_path) or self.update_message_list:
-            # refresh the cache for this folder
-            self.Logger.info("Updating message list for %s" % self.current_path)
-            
+            # refresh the mesage list cache for current_path
+            self.Logger.info("Updating message list for %s" % self.current_path)    
             search = self.imap_connection.search(['NOT DELETED'])
             self.imap_cache.update({
                         cache_path : self.imap_connection.fetch(search , DETAILS )
             })
-                
+        
+        # get sort_order ( we don't cache thoose actually )         
         self.sort_order = self.imap_connection.sort(['REVERSE ARRIVAL'], criteria='NOT DELETED')
         self.messages = self.imap_cache[cache_path]
         # get the actual message, in case no message is
-        # picked. 
+        # picked.
         if not self.current_message_id:
             self.current_message_id = self.sort_order[0]
         
@@ -348,7 +349,7 @@ class WebmailView(BrowserView):
      
 
     def __call__(self):
-        # self.context.setImap_cache(self.member.getName(), purge="all")
+        # self.context.setImap_cache(self.member.getId(), purge="all")
         # first of all, we check permissions and try to get a 
         # connection for this user from the webmail tool  
         try:
@@ -380,8 +381,8 @@ class WebmailView(BrowserView):
         # tmp
         self.current_message_id = int(self.form.get('show_message', self.form.get('current_message', False))) 
             
-        print self.request.form
-        print self.action, self.action_on , self.is_trashfolder
+        # print self.request.form
+        # print self.action, self.action_on , self.is_trashfolder
           
         # if it is a download, we respond in 
         # deliver_attachment() to this request,

@@ -18,7 +18,7 @@ from groovecubes.webmail.interfaces import IWebmail
 from groovecubes.webmail.config import PROJECTNAME
 
 
-
+import logging
 
 def IMAPCacheTree():
     """ 
@@ -85,6 +85,7 @@ class Webmail(folder.ATFolder):
     security = ClassSecurityInfo()
     meta_type = "Webmail"
     schema = WebmailSchema
+    Logger = logging.getLogger("groovecubes.webmail.Webmail")
     
     title = atapi.ATFieldProperty('title')
     description = atapi.ATFieldProperty('description')
@@ -103,6 +104,7 @@ class Webmail(folder.ATFolder):
         # check for user_key in OOBTree, create one,
         # if not present.
         if not tree.get(user):
+            self.Logger.info("creating local mail cache for user %s." % user)
             tree.insert(user , IMAPCacheTree())
         # just return the users chunk
         # of this tree at all
@@ -112,25 +114,19 @@ class Webmail(folder.ATFolder):
     def setImap_cache(self, user, **kwargs):
         """ mutator for imap_cache 
         """
-        print "setImapCache"
         # retrieve the field
-        # self.getField('imap_cache').set(self, OOBTree())
         tree  = self.getField('imap_cache').get(self)
         # re-set
         if kwargs.get("purge", False):
             if kwargs.get("purge") == "all":
-                print "!all"
+                self.Logger.info("purging all local mail caches ...")
                 # clear the whole cache
                 tree.clear()
             
             # clear the users cache
             if tree.get(user):
-                print "!purge"
+                self.Logger.info("purging all local mail cache for %s." % user)
                 tree[user] == IMAPCacheTree()
-            
-            
-                
-            
             return
         
         key = kwargs.get("key", False)

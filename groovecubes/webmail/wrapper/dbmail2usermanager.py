@@ -13,7 +13,7 @@ class DBMail2UserManager:
     implements(IMailserverUserManager)
     
     
-    Logger = logging.getLogger("groovecubes.webmail")
+    Logger = logging.getLogger("groovecubes.webmail.DBMail2Wrapper")
     DB = None
     
     def __init__(self, id, **kwargs):
@@ -41,7 +41,7 @@ class DBMail2UserManager:
             self.DB.ping()
         # except MySQLdb.OperationalError, e: # won't work for pgsql
         except StandardError, e:
-            self.Logger.info(e)
+            self.Logger.info("(re)Caching SQL connection. Reason: %s" % e)
             self.DB = self._DB.connect(**self._db_config)
         
         return self.DB.cursor() ## bad !!
@@ -198,7 +198,7 @@ class DBMail2UserManager:
         Authenticate a user against the imap servers user database, 
         to verify him as plone user.
         """
-        # print "authenticate"
+        
         query = """ SELECT userid,passwd 
                     FROM dbmail_users
                     WHERE userid = '%s'""" % login
@@ -216,7 +216,6 @@ class DBMail2UserManager:
     
 
     def enumerateUsers(self, **kwargs):
-        #print "enumerate"
         """ -> ( user_info_1, ... user_info_N )
 
         o Return mappings for users matching the given criteria.
@@ -263,8 +262,6 @@ class DBMail2UserManager:
         
         +++
         """
-        # print kwargs
-         
         keys = kwargs.get('id') or kwargs.get('login')
         
         if hasattr(keys, 'lower'):
@@ -283,7 +280,6 @@ class DBMail2UserManager:
         if kwargs.get('sort_by'):
             query += """ORDER BY userid"""
                 
-        # print query
         c = self.cursor
         c.execute(query)
         users = c.fetchall()
@@ -299,7 +295,6 @@ class DBMail2UserManager:
                         'pluginid' : kwargs.get('pluginid'),
                         'editurl': '/edit_mx1'
                       }]
-        # print _users
         return _users
         
         
@@ -311,8 +306,8 @@ class DBMail2UserManager:
         try:
             self._imap.noop()
             return self._imap
-        except StandardError, e:
-            self.Logger.info("Caching IMAP connection.")
+        except (IMAPClient.AbortError, StandardError), e:
+            self.Logger.info("(re)Caching IMAP connection. Reason: %s" % e)
         self._imap = IMAPClient(self.host, use_uid=True, ssl=self.ssl)
         self._imap.login(login, cred[0])
         return self._imap

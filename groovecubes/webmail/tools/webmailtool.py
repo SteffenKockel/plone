@@ -38,17 +38,22 @@ class WebmailTool(UniqueObject, SimpleItem):
                        ) + SimpleItem.manage_options
                       )
     
-    Logger = logging.getLogger("groovecubes.webmail")
+    @property
+    def Logger(self):
+        if getattr(self, '_v_logger', None) is None:
+            self._v_logger = logging.getLogger("groovecubes.webmail.WebmailTool") 
+        return self._v_logger
     
     @property
     def _cache(self):
         if getattr(self, '_v_cache', None) is None:
+            self.Logger.info("Setting up OOBTree Cache...")
             self._v_cache = OOBTree()
         return self._v_cache
     
     
-    def clear_cache(self):
-        self._cache.clear()
+    #def clear_cache(self):
+    #    self._cache.clear()
     
     
     @property
@@ -61,9 +66,9 @@ class WebmailTool(UniqueObject, SimpleItem):
         return getToolByName(self.portal, 'portal_membership')
     
     
-    @property
-    def session(self):
-        return self.portal.session_data_manager.getSessionData(create=True)
+    #@property
+    #def session(self):
+    #    return self.portal.session_data_manager.getSessionData(create=True)
     
     
     @property
@@ -90,10 +95,10 @@ class WebmailTool(UniqueObject, SimpleItem):
         @param wrapper_name string # the name of the server to connect 
         """
         _ckey = '%s:%s' % (server, login)
-        # print "###############", _ckey, list(self._cache.keys())
+        # print "##", _ckey, self._cache.get(_ckey)
         
         if login and self._cache.get(_ckey):
-            self.Logger.debug("reuse Wrapper")
+            self.Logger.info("reuse Wrapper %s" % _ckey)
             return self._cache[_ckey]
 
         c = self.servers[server]
@@ -108,7 +113,7 @@ class WebmailTool(UniqueObject, SimpleItem):
         
         
         if login and not self._cache.get(_ckey) or refresh:
-            self.Logger.info("cache wrapper")
+            self.Logger.info("cache wrapper %s" % _ckey)
             self._cache.update({_ckey: wrapped_mailserver})
         
         return wrapped_mailserver
@@ -183,7 +188,7 @@ class WebmailTool(UniqueObject, SimpleItem):
             users += server.enumerateUsers(**kwargs)
         
         self.Logger.info("cache query")
-        self._cache.update({_ckey:users})    
+        self._cache.update({_ckey:users})   
         return users
     
     
