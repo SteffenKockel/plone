@@ -62,7 +62,7 @@ def parseHTMLEmailBody(body, encoding, tags=None):
     
     """ 
     if not tags:
-        tags = ['frame','iframe','script','form']
+        tags = ['frame','iframe','script','form','head']
     
     for tag in tags:
         r = re.compile(r"(<%s>.*</%s>)" % (tag, tag))
