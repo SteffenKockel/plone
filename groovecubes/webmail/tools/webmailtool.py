@@ -220,7 +220,12 @@ class WebmailTool(UniqueObject, SimpleItem):
                 self._cache.update({_ckey: _group})
                 return _group
             
-            self._cache['nots'].add(id)          
+            # add to "not found here" cache
+            self._cache['nots'].add(id)
+            _wckey = '%s:%s' % (group,id)
+            # Uncache wrapper from unsuccessful try
+            self.Logger.info("Uncaching wrapper %s" % _wckey)
+            del self._cache[_wckey]          
             return ()
         
         
