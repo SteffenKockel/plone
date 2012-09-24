@@ -1,8 +1,17 @@
 Changelog
 =========
 
-0.1 (xxxx-xx-xx)
+
+0.1 (2012-09-1)
 ----------------
 
-- Created recipe with ZopeSkel
-  [""]
+ - Created recipe with ZopeSkel
+ - Basic functionality implemented
+ - PAS plugin for authentication and enumeration with volatile
+   cache for external users added.
+ - Volatile cache for IMAP (and SQL) connections added
+ - Persistent cache for IMAP folders and message lists 
+ - Wrapper for DBMail 2 (+ user managment via ZMI) 
+ - Email form with multiple attachments.
+
+  [SteffenKockel]
