@@ -5,7 +5,7 @@ from Products.CMFCore.utils import getToolByName
 from Acquisition import aq_inner
 
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin,\
-    ICredentialsUpdatePlugin, IUserEnumerationPlugin
+    ICredentialsUpdatePlugin, IUserEnumerationPlugin, IGroupsPlugin
 from Products.PluggableAuthService.utils import classImplements
 from App.class_init import default__class_init__ as InitializeClass
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile as PTF
@@ -93,10 +93,22 @@ class IMAPAuthenticationPlugin(BasePlugin):
         webmail_tool = getToolByName(context, 'webmail_tool')
         users =  webmail_tool.enumerateUsers(pluginid=self.getId(),**kwargs)
         return users
+    
+    
+    security.declarePrivate( 'getGroupsForPrincipal' )
+    def getGroupsForPrincipal( self, principal, request=None ):
+
+        """ See IGroupsPlugin.
+        """
+        context = getSite()
+        webmail_tool = getToolByName(context, 'webmail_tool')
+        return webmail_tool.getGroupsForPrincipal(principal, request)
+
 
 
 classImplements(IMAPAuthenticationPlugin,
                 IAuthenticationPlugin,
-                IUserEnumerationPlugin)
+                IUserEnumerationPlugin,
+                IGroupsPlugin)
 
 InitializeClass(IMAPAuthenticationPlugin)

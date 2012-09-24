@@ -18,7 +18,7 @@ from zope.annotation.interfaces import IAnnotatable, IAnnotations
 
 import logging
 
-from BTrees.OOBTree import OOBTree
+from BTrees.OOBTree import OOBTree, OOTreeSet
 from hashlib import sha1
 
 class WebmailTool(UniqueObject, SimpleItem):
@@ -44,11 +44,12 @@ class WebmailTool(UniqueObject, SimpleItem):
             self._v_logger = logging.getLogger("groovecubes.webmail.WebmailTool") 
         return self._v_logger
     
+    
     @property
     def _cache(self):
         if getattr(self, '_v_cache', None) is None:
             self.Logger.info("Setting up OOBTree Cache...")
-            self._v_cache = OOBTree()
+            self._v_cache = OOBTree({"nots":OOTreeSet()})
         return self._v_cache
     
     
@@ -179,7 +180,7 @@ class WebmailTool(UniqueObject, SimpleItem):
         _ckey = sha1(repr(kwargs)).hexdigest()
         
         if self._cache.get(_ckey):
-            self.Logger.debug("reuse query") # , self._cache.get(_ckey)
+            self.Logger.debug("reuse user query") # , self._cache.get(_ckey)
             return self._cache[_ckey]
         
         users = []
@@ -187,11 +188,42 @@ class WebmailTool(UniqueObject, SimpleItem):
             server = self.getWrappedServer(server, login=key)
             users += server.enumerateUsers(**kwargs)
         
-        self.Logger.info("cache query")
+        self.Logger.info("caching user query")
         self._cache.update({_ckey:users})   
         return users
     
     
+    security.declarePrivate( 'getGroupsForPrincipal' )
+    def getGroupsForPrincipal( self, principal, request=None ):
+        """ See IGroupsPlugin.
+        """
+        id = principal.getId()
+        groups = self.servers.keys()
+        
+        if id in groups or self._cache['nots'].has_key(id) :
+            # "Server cannot be in it's own group"
+            return ()
+        
+        _ckey = 'groups:%s' % id 
+        
+        if self._cache.get(_ckey):
+            self.Logger.debug("reuse group query")
+            return self._cache[_ckey]
+        
+        for group in groups:  
+            
+            s = self.getWrappedServer(group, login=id)
+            
+            if id in s.getUserList().keys(): 
+                _group = (group,)
+                self.Logger.info("caching group query")
+                self._cache.update({_ckey: _group})
+                return _group
+            
+            self._cache['nots'].add(id)          
+            return ()
+        
+        
     security.declarePrivate('getMailGroup')
     def getMailGroup(self, login):
         mailgroups = self.servers.keys()
