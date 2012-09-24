@@ -55,8 +55,14 @@ setup(name='groovecubes.webmail',
       include_package_data=True,
       zip_safe=False,
       install_requires=['setuptools',
+                        'Plone',
                         'plone.app.z3cform',
-                        'plone.directives.form'
+                        'plone.directives.form',
+                        'plone.formwidget.autocomplete',
+                        'plone.formwidget.contenttree',
+                        'IMAPClient',
+                        'MySQL-python',
+                        ''
                         # -*- Extra requirements: -*-
                         ],
       tests_require=tests_require,
