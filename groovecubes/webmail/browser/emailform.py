@@ -161,7 +161,7 @@ class EmailForm(form.SchemaForm):
             - authentication
             - session ticket
             
-            to make shure, we don'nt receive unwanted uploads.
+            to make shure, we don't receive unwanted uploads.
         """
         
         portal = getSite()
@@ -186,6 +186,10 @@ class EmailForm(form.SchemaForm):
             del container[filename]
         
         container.invokeFactory(type , filename, file = file)
+        # this results in a "tabula rasa" sharing tab, thus
+        # only the owner (and admin) should be able to see
+        # this items
+        container[filename].__ac_local_roles_block__ = True
         
         
     def update(self):
