@@ -1,0 +1,30 @@
+
+## TODO ##
+
+* find bug in AttachmentWidget. ->  found! -> new bug
+  * find out, why profiles of dependencies not getting 
+    imported. We depend on:
+     
+     ++resource++plone.formwidget.contenttree/contenttree.css
+     ++resource++plone.formwidget.contenttree/contenttree.js
+     
+     from plone.formwidget.contenttree
+     
+     and
+     
+     ++resource++plone.formwidget.autocomplete/jquery.autocomplete.css
+     ++resource++plone.formwidget.autocomplete/jquery.autocomplete.min.js
+     ++resource++plone.formwidget.autocomplete/formwidget-autocomplete.js
+     
+     from plone.formwidget.autocomplete
+     
+     which must be enabled manually at the moment.
+     
+
+* remove attachments after send upload / 
+
+* make attachments only visible for owner
+* write uninstaller 
+
+* write the actual send code
+* make propertiestool.xml install it's prop-sheet only if there is none. 
