@@ -173,11 +173,18 @@ class EmailForm(form.SchemaForm):
         # normalize the filename
         filename = unicode(file.filename, encoding, "ignore")
         filename = IUserPreferredURLNormalizer(self.request).normalize(filename)
+        
         # maybe that is unneccessary
         type = "File"    
         if filename.endswith(('png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg')):
             type = "Image"
+        
         # create upload in tmp folder
+        
+        # overwrite existing files with same name
+        if hasattr(container, filename):          
+            del container[filename]
+        
         container.invokeFactory(type , filename, file = file)
         
         

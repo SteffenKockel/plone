@@ -7,13 +7,13 @@ if(jQuery) (function($){
         contentTreeUploadFile: function() {
         	/* send the file and reload the overlay() */
         	$('input.contentTreeUploadFile').wrap(
-        		'<form id="form-widgets-attachments-upload" method="post" style="display:block" />' );
+        		'<form id="form-widgets-attachments-upload" method="post" style="display:inline" />' );
         	
         	$('#form-widgets-attachments-upload').ajaxSubmit({
         		success: function(a,b,c) {
         			var response = $(a).find('#form-widgets-attachments-contenttree');
         			var newlist = $(response).html();
-        			alert(newlist);
+        			// alert(newlist);
         			$('#form-widgets-attachments-contenttree').children().detach();
         			$('#form-widgets-attachments-contenttree').append(newlist);
         			$('#form-widgets-attachments-contenttree').contentTree($.fn.webmailAttachmentTreeConfig);
