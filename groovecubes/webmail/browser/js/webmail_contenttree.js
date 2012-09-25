@@ -8,6 +8,7 @@ if(jQuery) (function($){
         	/* send the file and reload the overlay() */
         	$('input.contentTreeUploadFile').wrap(
         		'<form id="form-widgets-attachments-upload" method="post" style="display:inline" />' );
+        	$('.contenttreeWindowActions').fadeOut("slow");
         	
         	$('#form-widgets-attachments-upload').ajaxSubmit({
         		success: function(a,b,c) {
@@ -17,7 +18,9 @@ if(jQuery) (function($){
         			$('#form-widgets-attachments-contenttree').children().detach();
         			$('#form-widgets-attachments-contenttree').append(newlist);
         			$('#form-widgets-attachments-contenttree').contentTree($.fn.webmailAttachmentTreeConfig);
-        			$('input.contentTreeUploadFile').unwrap()
+        			$('.contenttreeWindowActions').fadeIn("slow");
+        			$('input.contentTreeUploadFile').unwrap();
+        			
         			} 	
         	});
         }	   
